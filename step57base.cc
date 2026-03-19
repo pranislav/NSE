@@ -118,15 +118,21 @@ namespace Step57
   };
  
   template <int dim>
-  double BoundaryValues<dim>::value(const Point<dim>  &p,
+  double BoundaryValues<dim>::value(const Point<dim> &p,
                                     const unsigned int component) const
   {
     Assert(component < this->n_components,
            ExcIndexRange(component, 0, this->n_components));
-    if (component == 0 && std::abs(p[dim - 1] - 1.0) < 1e-10)
-      return 1.0;
- 
-    return 0;
+    if (component == 0) // x-velocity
+    {
+      if (std::abs(p[0]) < 1e-12) // inlet
+      {
+        const double y = p[1];
+        return 4.0 * y * (1.0 - y); // Poiseuille profile
+      }
+    }
+
+    return 0.0;
   }
  
   template <class PreconditionerMp>
@@ -227,11 +233,23 @@ namespace Step57
       nonzero_constraints.clear();
  
       DoFTools::make_hanging_node_constraints(dof_handler, nonzero_constraints);
-      VectorTools::interpolate_boundary_values(dof_handler,
-                                               0,
-                                               BoundaryValues<dim>(),
-                                               nonzero_constraints,
-                                               fe.component_mask(velocities));
+      // walls: u = 0
+      VectorTools::interpolate_boundary_values(
+        dof_handler,
+        0,
+        Functions::ZeroFunction<dim>(dim + 1),
+        nonzero_constraints,
+        fe.component_mask(velocities));
+
+      // inlet: prescribed velocity
+      VectorTools::interpolate_boundary_values(
+        dof_handler,
+        1,
+        BoundaryValues<dim>(),
+        nonzero_constraints,
+        fe.component_mask(velocities));
+
+      // outlet: NOTHING → natural BC
     }
     nonzero_constraints.close();
  
@@ -239,12 +257,21 @@ namespace Step57
       zero_constraints.clear();
  
       DoFTools::make_hanging_node_constraints(dof_handler, zero_constraints);
-      VectorTools::interpolate_boundary_values(dof_handler,
-                                               0,
-                                               Functions::ZeroFunction<dim>(
-                                                 dim + 1),
-                                               zero_constraints,
-                                               fe.component_mask(velocities));
+      // walls
+      VectorTools::interpolate_boundary_values(
+        dof_handler,
+        0,
+        Functions::ZeroFunction<dim>(dim + 1),
+        zero_constraints,
+        fe.component_mask(velocities));
+
+      // inlet
+      VectorTools::interpolate_boundary_values(
+        dof_handler,
+        1,
+        Functions::ZeroFunction<dim>(dim + 1),
+        zero_constraints,
+        fe.component_mask(velocities));
     }
     zero_constraints.close();
  
@@ -624,13 +651,32 @@ namespace Step57
         f << std::endl;
       }
   }
+
+  template <int dim>
+  void set_pipe_boundary_ids(Triangulation<dim> &triangulation)
+  {
+    for (auto &cell : triangulation.active_cell_iterators())
+      for (auto f : cell->face_iterators())
+        if (f->at_boundary())
+        {
+          const auto center = f->center();
+
+          if (std::abs(center[0]) < 1e-12)
+            f->set_boundary_id(1); // inlet
+          else if (std::abs(center[0] - 1.0) < 1e-12)
+            f->set_boundary_id(2); // outlet
+          else
+            f->set_boundary_id(0); // walls
+        }
+  }
  
   template <int dim>
   void StationaryNavierStokes<dim>::run(const unsigned int refinement)
   {
     GridGenerator::hyper_cube(triangulation);
+    set_pipe_boundary_ids(triangulation);
     triangulation.refine_global(5);
- 
+  
     const double Re = 1.0 / viscosity;
  
     if (Re > 1000.0)
