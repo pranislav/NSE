@@ -40,6 +40,7 @@
  
 #include <deal.II/lac/sparse_ilu.h>
  
+#include <deal.II/grid/grid_in.h>
  
 #include <fstream>
 #include <iostream>
@@ -128,12 +129,20 @@ namespace Step57
       if (std::abs(p[0]) < 1e-12) // inlet
       {
         const double y = p[1];
-        return 4.0 * y * (1.0 - y); // Poiseuille profile
+        return y * (1.0 - y); // Poiseuille profile
       }
     }
 
     return 0.0;
   }
+  // {
+  //   Assert(component < this->n_components,
+  //          ExcIndexRange(component, 0, this->n_components));
+  //   if (component == 0 && std::abs(p[dim - 1] - 1.0) < 1e-10)
+  //     return 1.0;
+
+  //   return 0;
+  // }
  
   template <class PreconditionerMp>
   class BlockSchurPreconditioner : public EnableObserverPointer
@@ -233,23 +242,25 @@ namespace Step57
       nonzero_constraints.clear();
  
       DoFTools::make_hanging_node_constraints(dof_handler, nonzero_constraints);
-      // walls: u = 0
-      VectorTools::interpolate_boundary_values(
-        dof_handler,
-        0,
-        Functions::ZeroFunction<dim>(dim + 1),
-        nonzero_constraints,
-        fe.component_mask(velocities));
 
-      // inlet: prescribed velocity
-      VectorTools::interpolate_boundary_values(
-        dof_handler,
-        1,
-        BoundaryValues<dim>(),
-        nonzero_constraints,
-        fe.component_mask(velocities));
+      for (int id: {10, 30, 40}) {
+        VectorTools::interpolate_boundary_values(
+          dof_handler,
+          id,
+          BoundaryValues<dim>(),
+          nonzero_constraints,
+          fe.component_mask(velocities));
+      }
+        // Functions::ZeroFunction<dim>(dim + 1),
 
-      // outlet: NOTHING → natural BC
+
+      // VectorTools::interpolate_boundary_values(
+      //   dof_handler,
+      //   10,
+      //   BoundaryValues<dim>(),
+      //   nonzero_constraints,
+      //   fe.component_mask(velocities));
+
     }
     nonzero_constraints.close();
  
@@ -257,21 +268,16 @@ namespace Step57
       zero_constraints.clear();
  
       DoFTools::make_hanging_node_constraints(dof_handler, zero_constraints);
-      // walls
-      VectorTools::interpolate_boundary_values(
-        dof_handler,
-        0,
-        Functions::ZeroFunction<dim>(dim + 1),
-        zero_constraints,
-        fe.component_mask(velocities));
 
-      // inlet
-      VectorTools::interpolate_boundary_values(
-        dof_handler,
-        1,
-        Functions::ZeroFunction<dim>(dim + 1),
-        zero_constraints,
-        fe.component_mask(velocities));
+      for (int id: {10, 30, 40}) {
+        VectorTools::interpolate_boundary_values(
+          dof_handler,
+          id,
+          Functions::ZeroFunction<dim>(dim + 1),
+          zero_constraints,
+          fe.component_mask(velocities));
+      }
+
     }
     zero_constraints.close();
  
@@ -620,7 +626,8 @@ namespace Step57
                              data_component_interpretation);
     data_out.build_patches();
  
-    std::ofstream output(std::to_string(1.0 / viscosity) + "-solution-" +
+    std::string output_dir = ".";
+    std::ofstream output(output_dir + "/" + std::to_string(1.0 / viscosity) + "-solution-" +
                          Utilities::int_to_string(output_index, 4) + ".vtk");
     data_out.write_vtk(output);
   }
@@ -662,20 +669,27 @@ namespace Step57
           const auto center = f->center();
 
           if (std::abs(center[0]) < 1e-12)
-            f->set_boundary_id(1); // inlet
+            f->set_boundary_id(40); // inlet
           else if (std::abs(center[0] - 1.0) < 1e-12)
-            f->set_boundary_id(2); // outlet
+            f->set_boundary_id(20); // outlet
           else
-            f->set_boundary_id(0); // walls
+            f->set_boundary_id(10); // walls
         }
   }
  
   template <int dim>
   void StationaryNavierStokes<dim>::run(const unsigned int refinement)
   {
-    GridGenerator::hyper_cube(triangulation);
-    set_pipe_boundary_ids(triangulation);
-    triangulation.refine_global(5);
+    GridIn<dim> grid_in;
+    grid_in.attach_triangulation(triangulation);
+    std::ifstream input_file("../square.msh");
+    Assert(dim == 2, ExcNotImplemented());
+
+    grid_in.read_msh(input_file);
+
+    // GridGenerator::hyper_cube(triangulation);
+    // triangulation.refine_global(5);
+    // set_pipe_boundary_ids(triangulation);
   
     const double Re = 1.0 / viscosity;
  
