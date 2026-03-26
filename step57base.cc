@@ -121,20 +121,27 @@ namespace Step57
   template <int dim>
   double BoundaryValues<dim>::value(const Point<dim> &p,
                                     const unsigned int component) const
-  {
-    Assert(component < this->n_components,
-           ExcIndexRange(component, 0, this->n_components));
-    if (component == 0) // x-velocity
     {
-      if (std::abs(p[0]) < 1e-12) // inlet
-      {
-        const double y = p[1];
-        return y * (1.0 - y); // Poiseuille profile
+      const double y = p[1];
+      if (component == 0 && y >= 1 && y <= 2) {
+        return (y - 1) * (2 - y);
       }
+      return 0;
     }
+  // {
+  //   Assert(component < this->n_components,
+  //          ExcIndexRange(component, 0, this->n_components));
+  //   if (component == 0) // x-velocity
+  //   {
+  //     if (std::abs(p[0]) < 1e-12) // inlet
+  //     {
+  //       const double y = p[1];
+  //       return y * (1.0 - y); // Poiseuille profile
+  //     }
+  //   }
 
-    return 0.0;
-  }
+  //   return 0.0;
+  // }
   // {
   //   Assert(component < this->n_components,
   //          ExcIndexRange(component, 0, this->n_components));
@@ -243,23 +250,21 @@ namespace Step57
  
       DoFTools::make_hanging_node_constraints(dof_handler, nonzero_constraints);
 
-      for (int id: {10, 30, 40}) {
+      for (int id: {10, 20, 30, 40}) {
         VectorTools::interpolate_boundary_values(
           dof_handler,
           id,
-          BoundaryValues<dim>(),
+          Functions::ZeroFunction<dim>(dim + 1),
           nonzero_constraints,
           fe.component_mask(velocities));
       }
-        // Functions::ZeroFunction<dim>(dim + 1),
 
-
-      // VectorTools::interpolate_boundary_values(
-      //   dof_handler,
-      //   10,
-      //   BoundaryValues<dim>(),
-      //   nonzero_constraints,
-      //   fe.component_mask(velocities));
+      VectorTools::interpolate_boundary_values(
+        dof_handler,
+        60,
+        BoundaryValues<dim>(),
+        nonzero_constraints,
+        fe.component_mask(velocities));
 
     }
     nonzero_constraints.close();
@@ -269,7 +274,7 @@ namespace Step57
  
       DoFTools::make_hanging_node_constraints(dof_handler, zero_constraints);
 
-      for (int id: {10, 30, 40}) {
+      for (int id: {10, 20, 30, 40, 60}) {
         VectorTools::interpolate_boundary_values(
           dof_handler,
           id,
@@ -682,7 +687,7 @@ namespace Step57
   {
     GridIn<dim> grid_in;
     grid_in.attach_triangulation(triangulation);
-    std::ifstream input_file("../square.msh");
+    std::ifstream input_file("../pipe.msh");
     Assert(dim == 2, ExcNotImplemented());
 
     grid_in.read_msh(input_file);
