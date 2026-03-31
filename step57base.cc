@@ -284,6 +284,8 @@ namespace Step57
   {
     system_matrix.clear();
     pressure_mass_matrix.clear();
+
+    set_active_fe_indices();
  
     dof_handler.distribute_dofs(fe_collection);
  
@@ -364,8 +366,6 @@ namespace Step57
   void StationaryNavierStokes<dim>::assemble(const bool initial_step,
                                              const bool assemble_matrix)
   {
-    set_active_fe_indices();
-    
     if (assemble_matrix)
       system_matrix = 0;
  
@@ -539,9 +539,14 @@ namespace Step57
   {
     Vector<float> estimated_error_per_cell(triangulation.n_active_cells());
     const FEValuesExtractors::Vector velocity(0);
+
+    hp::QCollection<dim - 1> face_quadratures;
+    for (unsigned int fe_index = 0; fe_index < fe_collection.size(); ++fe_index)
+      face_quadratures.push_back(QGauss<dim - 1>(degree + 1));
+
     KellyErrorEstimator<dim>::estimate(
       dof_handler,
-      QGauss<dim - 1>(degree + 1),
+      face_quadratures,
       std::map<types::boundary_id, const Function<dim> *>(),
       present_solution,
       estimated_error_per_cell,
