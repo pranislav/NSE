@@ -73,6 +73,8 @@ namespace Step57
       const typename DoFHandler<dim>::cell_iterator &cell);
 
     void set_active_fe_indices();
+    void add_fluid_solid_interface_constraints(
+      AffineConstraints<double> &constraints) const;
 
     void setup_dofs();
  
@@ -278,6 +280,50 @@ namespace Step57
       }
   }
 
+  template <int dim>
+  void StationaryNavierStokes<dim>::add_fluid_solid_interface_constraints(
+    AffineConstraints<double> &constraints) const
+  {
+    std::vector<types::global_dof_index> local_face_dof_indices(
+      fe_fluid.n_dofs_per_face());
+
+    for (const auto &cell : dof_handler.active_cell_iterators())
+      if (cell_is_in_fluid_domain(cell))
+        for (const auto face_no : cell->face_indices())
+          if (!cell->face(face_no)->at_boundary())
+            {
+              bool face_is_on_interface = false;
+
+              if (!cell->neighbor(face_no)->has_children() &&
+                  cell_is_in_solid_domain(cell->neighbor(face_no)))
+                face_is_on_interface = true;
+              else if (cell->neighbor(face_no)->has_children())
+                {
+                  for (unsigned int sf = 0;
+                       sf < cell->face(face_no)->n_children();
+                       ++sf)
+                    if (cell_is_in_solid_domain(
+                          cell->neighbor_child_on_subface(face_no, sf)))
+                      {
+                        face_is_on_interface = true;
+                        break;
+                      }
+                }
+
+              if (face_is_on_interface)
+                {
+                  cell->face(face_no)->get_dof_indices(local_face_dof_indices,
+                                                       0);
+
+                  for (unsigned int i = 0; i < local_face_dof_indices.size();
+                       ++i)
+                    if (fe_fluid.face_system_to_component_index(i).first < dim)
+                      constraints.constrain_dof_to_zero(
+                        local_face_dof_indices[i]);
+                }
+            }
+  }
+
  
   template <int dim>
   void StationaryNavierStokes<dim>::setup_dofs()
@@ -320,6 +366,8 @@ namespace Step57
         nonzero_constraints,
         fe_collection.component_mask(velocities));
 
+      add_fluid_solid_interface_constraints(nonzero_constraints);
+
     }
     nonzero_constraints.close();
  
@@ -336,6 +384,8 @@ namespace Step57
           zero_constraints,
           fe_collection.component_mask(velocities));
       }
+
+      add_fluid_solid_interface_constraints(zero_constraints);
 
     }
     zero_constraints.close();
