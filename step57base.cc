@@ -661,10 +661,17 @@ namespace Step57
     temperature_rhs    = 0;
 
     const QGauss<dim> quadrature_formula(degree + 2);
+    hp::QCollection<dim> flow_quadratures;
+    flow_quadratures.push_back(quadrature_formula);
+    flow_quadratures.push_back(quadrature_formula);
+    hp::FEValues<dim> flow_fe_values(fe_collection,
+                                     flow_quadratures,
+                                     update_values);
     FEValues<dim> temperature_fe_values(temperature_fe,
                                         quadrature_formula,
                                         update_values | update_gradients |
                                           update_JxW_values);
+    const FEValuesExtractors::Vector velocities(0);
 
     const unsigned int dofs_per_cell = temperature_fe.n_dofs_per_cell();
     const unsigned int n_q_points    = quadrature_formula.size();
@@ -673,27 +680,48 @@ namespace Step57
     Vector<double>     local_rhs(dofs_per_cell);
     std::vector<types::global_dof_index> local_dof_indices(dofs_per_cell);
     std::vector<Tensor<1, dim>>           grad_phi_T(dofs_per_cell);
+    std::vector<double>                   phi_T(dofs_per_cell);
+    std::vector<Tensor<1, dim>>           velocity_values(n_q_points);
 
+    auto flow_cell = dof_handler.begin_active();
     for (const auto &cell : temperature_dof_handler.active_cell_iterators())
       {
         local_matrix = 0;
         local_rhs    = 0;
         temperature_fe_values.reinit(cell);
 
+        const bool   in_fluid_domain = cell_is_in_fluid_domain(flow_cell);
         const double thermal_conductivity =
-          cell_is_in_fluid_domain(cell) ? fluid_thermal_conductivity :
-                                          solid_thermal_conductivity;
+          in_fluid_domain ? fluid_thermal_conductivity :
+                            solid_thermal_conductivity;
+
+        if (in_fluid_domain)
+          {
+            flow_fe_values.reinit(flow_cell);
+            flow_fe_values.get_present_fe_values()[velocities].get_function_values(
+              present_solution, velocity_values);
+          }
 
         for (unsigned int q = 0; q < n_q_points; ++q)
           {
             for (unsigned int k = 0; k < dofs_per_cell; ++k)
-              grad_phi_T[k] = temperature_fe_values.shape_grad(k, q);
+              {
+                phi_T[k]      = temperature_fe_values.shape_value(k, q);
+                grad_phi_T[k] = temperature_fe_values.shape_grad(k, q);
+              }
 
             for (unsigned int i = 0; i < dofs_per_cell; ++i)
               for (unsigned int j = 0; j < dofs_per_cell; ++j)
-                local_matrix(i, j) +=
-                  (thermal_conductivity * grad_phi_T[i] * grad_phi_T[j] *
-                   temperature_fe_values.JxW(q));
+                {
+                  local_matrix(i, j) +=
+                    (thermal_conductivity * grad_phi_T[i] * grad_phi_T[j] *
+                     temperature_fe_values.JxW(q));
+
+                  if (in_fluid_domain)
+                    local_matrix(i, j) +=
+                      ((velocity_values[q] * grad_phi_T[j]) * phi_T[i] *
+                       temperature_fe_values.JxW(q));
+                }
           }
 
         cell->get_dof_indices(local_dof_indices);
@@ -702,6 +730,7 @@ namespace Step57
                                                            local_dof_indices,
                                                            temperature_matrix,
                                                            temperature_rhs);
+        ++flow_cell;
       }
   }
 
