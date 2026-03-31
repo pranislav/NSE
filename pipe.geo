@@ -66,7 +66,7 @@ Physical Curve(60) = {7}; // inlet
 
 // Materials
 Physical Surface(1) = {100, 300}; // walls
-Physical Surface(2) = {200}; // fluid
+Physical Surface(0) = {200}; // fluid
 
 // ---------------- MESH ----------------
 Mesh.RecombineAll = 1;

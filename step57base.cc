@@ -27,6 +27,7 @@
 #include <deal.II/dofs/dof_tools.h>
  
 #include <deal.II/fe/fe_q.h>
+#include <deal.II/fe/fe_nothing.h>
 #include <deal.II/fe/fe_system.h>
 #include <deal.II/fe/fe_values.h>
  
@@ -58,6 +59,21 @@ namespace Step57
     void run(const unsigned int refinement);
  
   private:
+
+    enum
+    {
+      fluid_domain_id,
+      solid_domain_id
+    };
+
+    static bool cell_is_in_fluid_domain(
+      const typename DoFHandler<dim>::cell_iterator &cell);
+
+    static bool cell_is_in_solid_domain(
+      const typename DoFHandler<dim>::cell_iterator &cell);
+
+    void set_active_fe_indices();
+
     void setup_dofs();
  
     void initialize_system();
@@ -90,7 +106,9 @@ namespace Step57
     std::vector<types::global_dof_index> dofs_per_block;
  
     Triangulation<dim>  triangulation;
-    const FESystem<dim> fe;
+    const FESystem<dim> fe_fluid;
+    const FESystem<dim> fe_solid;
+    hp::FECollection<dim> fe_collection;
     DoFHandler<dim>     dof_handler;
  
     AffineConstraints<double> zero_constraints;
@@ -223,9 +241,43 @@ namespace Step57
     , gamma(1.0)
     , degree(degree)
     , triangulation(Triangulation<dim>::maximum_smoothing)
-    , fe(FE_Q<dim>(degree + 1) ^ dim, FE_Q<dim>(degree))
+    , fe_fluid(FE_Q<dim>(degree + 1) ^ dim, FE_Q<dim>(degree))
+    , fe_solid(FE_Nothing<dim>(), dim, FE_Nothing<dim>(), 1)
     , dof_handler(triangulation)
-  {}
+  {
+    fe_collection.push_back(fe_fluid);
+    fe_collection.push_back(fe_solid);
+  }
+
+  template <int dim>
+  bool StationaryNavierStokes<dim>::cell_is_in_fluid_domain(
+    const typename DoFHandler<dim>::cell_iterator &cell)
+  {
+    return (cell->material_id() == fluid_domain_id);
+  }
+
+
+  template <int dim>
+  bool StationaryNavierStokes<dim>::cell_is_in_solid_domain(
+    const typename DoFHandler<dim>::cell_iterator &cell)
+  {
+    return (cell->material_id() == solid_domain_id);
+  }
+
+  template <int dim>
+  void StationaryNavierStokes<dim>::set_active_fe_indices()
+  {
+    for (const auto &cell : dof_handler.active_cell_iterators())
+      {
+        if (cell_is_in_fluid_domain(cell))
+          cell->set_active_fe_index(0);
+        else if (cell_is_in_solid_domain(cell))
+          cell->set_active_fe_index(1);
+        else
+          DEAL_II_NOT_IMPLEMENTED();
+      }
+  }
+
  
   template <int dim>
   void StationaryNavierStokes<dim>::setup_dofs()
@@ -233,7 +285,7 @@ namespace Step57
     system_matrix.clear();
     pressure_mass_matrix.clear();
  
-    dof_handler.distribute_dofs(fe);
+    dof_handler.distribute_dofs(fe_collection);
  
     std::vector<unsigned int> block_component(dim + 1, 0);
     block_component[dim] = 1;
@@ -256,7 +308,7 @@ namespace Step57
           id,
           Functions::ZeroFunction<dim>(dim + 1),
           nonzero_constraints,
-          fe.component_mask(velocities));
+          fe_collection.component_mask(velocities));
       }
 
       VectorTools::interpolate_boundary_values(
@@ -264,7 +316,7 @@ namespace Step57
         60,
         BoundaryValues<dim>(),
         nonzero_constraints,
-        fe.component_mask(velocities));
+        fe_collection.component_mask(velocities));
 
     }
     nonzero_constraints.close();
@@ -280,7 +332,7 @@ namespace Step57
           id,
           Functions::ZeroFunction<dim>(dim + 1),
           zero_constraints,
-          fe.component_mask(velocities));
+          fe_collection.component_mask(velocities));
       }
 
     }
@@ -312,42 +364,49 @@ namespace Step57
   void StationaryNavierStokes<dim>::assemble(const bool initial_step,
                                              const bool assemble_matrix)
   {
+    set_active_fe_indices();
+    
     if (assemble_matrix)
       system_matrix = 0;
  
     system_rhs = 0;
  
-    const QGauss<dim> quadrature_formula(degree + 2);
- 
-    FEValues<dim> fe_values(fe,
-                            quadrature_formula,
-                            update_values | update_quadrature_points |
-                              update_JxW_values | update_gradients);
- 
-    const unsigned int dofs_per_cell = fe.n_dofs_per_cell();
-    const unsigned int n_q_points    = quadrature_formula.size();
- 
+    const UpdateFlags update_flags =
+      update_values | update_quadrature_points |
+      update_JxW_values | update_gradients;
+
+    hp::QCollection<dim> q_collection;
+    q_collection.push_back(QGauss<dim>(degree + 2));
+    q_collection.push_back(QGauss<dim>(degree + 2));
+
+    hp::FEValues<dim> hp_fe_values(fe_collection,
+                                  q_collection,
+                                  update_flags);
+  
     const FEValuesExtractors::Vector velocities(0);
-    const FEValuesExtractors::Scalar pressure(dim);
- 
-    FullMatrix<double> local_matrix(dofs_per_cell, dofs_per_cell);
-    Vector<double>     local_rhs(dofs_per_cell);
- 
-    std::vector<types::global_dof_index> local_dof_indices(dofs_per_cell);
- 
- 
-    std::vector<Tensor<1, dim>> present_velocity_values(n_q_points);
-    std::vector<Tensor<2, dim>> present_velocity_gradients(n_q_points);
-    std::vector<double>         present_pressure_values(n_q_points);
- 
-    std::vector<double>         div_phi_u(dofs_per_cell);
-    std::vector<Tensor<1, dim>> phi_u(dofs_per_cell);
-    std::vector<Tensor<2, dim>> grad_phi_u(dofs_per_cell);
-    std::vector<double>         phi_p(dofs_per_cell);
+    const FEValuesExtractors::Scalar pressure(dim);  
+
  
     for (const auto &cell : dof_handler.active_cell_iterators())
       {
-        fe_values.reinit(cell);
+        hp_fe_values.reinit(cell);
+        const FEValues<dim> &fe_values = hp_fe_values.get_present_fe_values();
+        const unsigned int n_q_points = fe_values.n_quadrature_points;
+
+        std::vector<Tensor<1, dim>> present_velocity_values(n_q_points);
+        std::vector<Tensor<2, dim>> present_velocity_gradients(n_q_points);
+        std::vector<double>         present_pressure_values(n_q_points);
+
+        const unsigned int dofs_per_cell = cell->get_fe().n_dofs_per_cell();
+
+        FullMatrix<double> local_matrix(dofs_per_cell, dofs_per_cell);
+        Vector<double>     local_rhs(dofs_per_cell);
+        std::vector<types::global_dof_index> local_dof_indices(dofs_per_cell);
+
+        std::vector<double>         div_phi_u(dofs_per_cell);
+        std::vector<Tensor<1, dim>> phi_u(dofs_per_cell);
+        std::vector<Tensor<2, dim>> grad_phi_u(dofs_per_cell);
+        std::vector<double>         phi_p(dofs_per_cell);
  
         local_matrix = 0;
         local_rhs    = 0;
@@ -486,7 +545,7 @@ namespace Step57
       std::map<types::boundary_id, const Function<dim> *>(),
       present_solution,
       estimated_error_per_cell,
-      fe.component_mask(velocity));
+      fe_collection.component_mask(velocity));
  
     GridRefinement::refine_and_coarsen_fixed_number(triangulation,
                                                     estimated_error_per_cell,
