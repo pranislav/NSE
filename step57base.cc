@@ -75,6 +75,10 @@ namespace Step57
     void set_active_fe_indices();
     void add_fluid_solid_interface_constraints(
       AffineConstraints<double> &constraints) const;
+    void setup_temperature_dofs();
+    void assemble_temperature_system();
+    void solve_temperature();
+    void update_temperature_field();
 
     void setup_dofs();
  
@@ -104,26 +108,35 @@ namespace Step57
  
     double                               viscosity;
     double                               gamma;
+    const double                         fluid_thermal_conductivity;
+    const double                         solid_thermal_conductivity;
     const unsigned int                   degree;
     std::vector<types::global_dof_index> dofs_per_block;
  
-    Triangulation<dim>  triangulation;
-    const FESystem<dim> fe_fluid;
-    const FESystem<dim> fe_solid;
+    Triangulation<dim>    triangulation;
+    const FESystem<dim>   fe_fluid;
+    const FESystem<dim>   fe_solid;
+    const FE_Q<dim>       temperature_fe;
     hp::FECollection<dim> fe_collection;
-    DoFHandler<dim>     dof_handler;
+    DoFHandler<dim>       dof_handler;
+    DoFHandler<dim>       temperature_dof_handler;
  
     AffineConstraints<double> zero_constraints;
     AffineConstraints<double> nonzero_constraints;
+    AffineConstraints<double> temperature_constraints;
  
     BlockSparsityPattern      sparsity_pattern;
     BlockSparseMatrix<double> system_matrix;
     SparseMatrix<double>      pressure_mass_matrix;
+    SparsityPattern           temperature_sparsity_pattern;
+    SparseMatrix<double>      temperature_matrix;
  
     BlockVector<double> present_solution;
     BlockVector<double> newton_update;
     BlockVector<double> system_rhs;
     BlockVector<double> evaluation_point;
+    Vector<double>      temperature_solution;
+    Vector<double>      temperature_rhs;
   };
  
  
@@ -136,6 +149,26 @@ namespace Step57
     {}
     virtual double value(const Point<dim>  &p,
                          const unsigned int component) const override;
+  };
+
+  template <int dim>
+  class TemperatureBoundaryValues : public Function<dim>
+  {
+  public:
+    TemperatureBoundaryValues(const double temperature)
+      : Function<dim>(1)
+      , temperature(temperature)
+    {}
+
+    virtual double value(const Point<dim> & /*p*/,
+                         const unsigned int component) const override
+    {
+      AssertIndexRange(component, 1);
+      return temperature;
+    }
+
+  private:
+    const double temperature;
   };
  
   template <int dim>
@@ -241,11 +274,15 @@ namespace Step57
   StationaryNavierStokes<dim>::StationaryNavierStokes(const unsigned int degree)
     : viscosity(1.0 / 7500.0)
     , gamma(1.0)
+    , fluid_thermal_conductivity(1.0)
+    , solid_thermal_conductivity(5.0)
     , degree(degree)
     , triangulation(Triangulation<dim>::maximum_smoothing)
     , fe_fluid(FE_Q<dim>(degree + 1) ^ dim, FE_Q<dim>(degree))
     , fe_solid(FE_Nothing<dim>(), dim, FE_Nothing<dim>(), 1)
+    , temperature_fe(degree + 1)
     , dof_handler(triangulation)
+    , temperature_dof_handler(triangulation)
   {
     fe_collection.push_back(fe_fluid);
     fe_collection.push_back(fe_solid);
@@ -324,6 +361,37 @@ namespace Step57
             }
   }
 
+  template <int dim>
+  void StationaryNavierStokes<dim>::setup_temperature_dofs()
+  {
+    temperature_matrix.clear();
+
+    temperature_dof_handler.distribute_dofs(temperature_fe);
+
+    temperature_constraints.clear();
+    DoFTools::make_hanging_node_constraints(temperature_dof_handler,
+                                            temperature_constraints);
+    VectorTools::interpolate_boundary_values(temperature_dof_handler,
+                                             10,
+                                             TemperatureBoundaryValues<dim>(0.0),
+                                             temperature_constraints);
+    VectorTools::interpolate_boundary_values(temperature_dof_handler,
+                                             20,
+                                             TemperatureBoundaryValues<dim>(1.0),
+                                             temperature_constraints);
+    temperature_constraints.close();
+
+    DynamicSparsityPattern dsp(temperature_dof_handler.n_dofs());
+    DoFTools::make_sparsity_pattern(temperature_dof_handler,
+                                    dsp,
+                                    temperature_constraints);
+    temperature_sparsity_pattern.copy_from(dsp);
+
+    temperature_matrix.reinit(temperature_sparsity_pattern);
+    temperature_solution.reinit(temperature_dof_handler.n_dofs());
+    temperature_rhs.reinit(temperature_dof_handler.n_dofs());
+  }
+
  
   template <int dim>
   void StationaryNavierStokes<dim>::setup_dofs()
@@ -394,6 +462,8 @@ namespace Step57
               << std::endl
               << "Number of degrees of freedom: " << dof_handler.n_dofs()
               << " (" << dof_u << " + " << dof_p << ')' << std::endl;
+
+    setup_temperature_dofs();
   }
  
   template <int dim>
@@ -583,6 +653,79 @@ namespace Step57
  
     constraints_used.distribute(newton_update);
   }
+
+  template <int dim>
+  void StationaryNavierStokes<dim>::assemble_temperature_system()
+  {
+    temperature_matrix = 0;
+    temperature_rhs    = 0;
+
+    const QGauss<dim> quadrature_formula(degree + 2);
+    FEValues<dim> temperature_fe_values(temperature_fe,
+                                        quadrature_formula,
+                                        update_values | update_gradients |
+                                          update_JxW_values);
+
+    const unsigned int dofs_per_cell = temperature_fe.n_dofs_per_cell();
+    const unsigned int n_q_points    = quadrature_formula.size();
+
+    FullMatrix<double> local_matrix(dofs_per_cell, dofs_per_cell);
+    Vector<double>     local_rhs(dofs_per_cell);
+    std::vector<types::global_dof_index> local_dof_indices(dofs_per_cell);
+    std::vector<Tensor<1, dim>>           grad_phi_T(dofs_per_cell);
+
+    for (const auto &cell : temperature_dof_handler.active_cell_iterators())
+      {
+        local_matrix = 0;
+        local_rhs    = 0;
+        temperature_fe_values.reinit(cell);
+
+        const double thermal_conductivity =
+          cell_is_in_fluid_domain(cell) ? fluid_thermal_conductivity :
+                                          solid_thermal_conductivity;
+
+        for (unsigned int q = 0; q < n_q_points; ++q)
+          {
+            for (unsigned int k = 0; k < dofs_per_cell; ++k)
+              grad_phi_T[k] = temperature_fe_values.shape_grad(k, q);
+
+            for (unsigned int i = 0; i < dofs_per_cell; ++i)
+              for (unsigned int j = 0; j < dofs_per_cell; ++j)
+                local_matrix(i, j) +=
+                  (thermal_conductivity * grad_phi_T[i] * grad_phi_T[j] *
+                   temperature_fe_values.JxW(q));
+          }
+
+        cell->get_dof_indices(local_dof_indices);
+        temperature_constraints.distribute_local_to_global(local_matrix,
+                                                           local_rhs,
+                                                           local_dof_indices,
+                                                           temperature_matrix,
+                                                           temperature_rhs);
+      }
+  }
+
+  template <int dim>
+  void StationaryNavierStokes<dim>::solve_temperature()
+  {
+    SolverControl solver_control(temperature_matrix.m(),
+                                 1e-12 * temperature_rhs.l2_norm() + 1e-14);
+    SolverCG<Vector<double>> cg(solver_control);
+    PreconditionSSOR<SparseMatrix<double>> preconditioner;
+    preconditioner.initialize(temperature_matrix, 1.2);
+    cg.solve(temperature_matrix,
+             temperature_solution,
+             temperature_rhs,
+             preconditioner);
+    temperature_constraints.distribute(temperature_solution);
+  }
+
+  template <int dim>
+  void StationaryNavierStokes<dim>::update_temperature_field()
+  {
+    assemble_temperature_system();
+    solve_temperature();
+  }
  
   template <int dim>
   void StationaryNavierStokes<dim>::refine_mesh()
@@ -692,6 +835,7 @@ namespace Step57
  
             if (output_result)
               {
+                update_temperature_field();
                 output_results(max_n_line_searches * refinement_n +
                                line_search_n);
  
@@ -743,6 +887,11 @@ namespace Step57
                              solution_names,
                              DataOut<dim>::type_dof_data,
                              data_component_interpretation);
+    if (temperature_solution.size() == temperature_dof_handler.n_dofs() &&
+        temperature_dof_handler.n_dofs() > 0)
+      data_out.add_data_vector(temperature_dof_handler,
+                               temperature_solution,
+                               "temperature");
     data_out.build_patches();
  
     std::string output_dir = ".";
