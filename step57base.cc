@@ -377,6 +377,10 @@ namespace Step57
                                              temperature_constraints);
     VectorTools::interpolate_boundary_values(temperature_dof_handler,
                                              20,
+                                             TemperatureBoundaryValues<dim>(0.0),
+                                             temperature_constraints);
+    VectorTools::interpolate_boundary_values(temperature_dof_handler,
+                                             60,
                                              TemperatureBoundaryValues<dim>(1.0),
                                              temperature_constraints);
     temperature_constraints.close();
