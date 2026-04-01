@@ -21,6 +21,7 @@
 #include <deal.II/grid/grid_generator.h>
 #include <deal.II/grid/grid_refinement.h>
 #include <deal.II/grid/grid_tools.h>
+#include <deal.II/grid/grid_out.h>
  
 #include <deal.II/dofs/dof_handler.h>
 #include <deal.II/dofs/dof_renumbering.h>
@@ -57,7 +58,8 @@ namespace Step57
   {
   public:
     StationaryNavierStokes(const unsigned int degree,
-                           const std::string &output_directory = ".");
+                           const std::string &output_directory = ".",
+                           const bool         save_mesh_output = false);
     void run(const unsigned int refinement);
  
   private:
@@ -99,6 +101,7 @@ namespace Step57
     void process_solution(unsigned int refinement);
  
     void output_results(const unsigned int refinement_cycle) const;
+    void output_mesh(const unsigned int output_index) const;
  
     void newton_iteration(const double       tolerance,
                           const unsigned int max_n_line_searches,
@@ -114,6 +117,7 @@ namespace Step57
     const double                         solid_thermal_conductivity;
     const unsigned int                   degree;
     const std::string                    output_directory;
+    const bool                           save_mesh_output;
     std::vector<types::global_dof_index> dofs_per_block;
  
     Triangulation<dim>    triangulation;
@@ -301,13 +305,15 @@ namespace Step57
   template <int dim>
   StationaryNavierStokes<dim>::StationaryNavierStokes(
     const unsigned int degree,
-    const std::string &output_directory)
+    const std::string &output_directory,
+    const bool         save_mesh_output)
     : viscosity(1.0 / 7500.0)
     , gamma(1.0)
     , fluid_thermal_conductivity(1.0)
     , solid_thermal_conductivity(5.0)
     , degree(degree)
     , output_directory(output_directory)
+    , save_mesh_output(save_mesh_output)
     , triangulation(Triangulation<dim>::maximum_smoothing)
     , fe_fluid(FE_Q<dim>(degree + 1) ^ dim, FE_Q<dim>(degree))
     , fe_solid(FE_Nothing<dim>(), dim, FE_Nothing<dim>(), 1)
@@ -1001,6 +1007,20 @@ namespace Step57
                          std::to_string(1.0 / viscosity) + "-solution-" +
                          Utilities::int_to_string(output_index, 4) + ".vtk");
     data_out.write_vtk(output);
+
+    if (save_mesh_output)
+      output_mesh(output_index);
+  }
+
+  template <int dim>
+  void StationaryNavierStokes<dim>::output_mesh(
+    const unsigned int output_index) const
+  {
+    GridOut grid_out;
+    std::ofstream output(output_directory + "/" +
+                         std::to_string(1.0 / viscosity) + "-mesh-" +
+                         Utilities::int_to_string(output_index, 4) + ".vtu");
+    grid_out.write_vtu(triangulation, output);
   }
  
   template <int dim>
@@ -1091,6 +1111,7 @@ int main(int argc, char **argv)
       using namespace Step57;
 
       std::string output_directory = ".";
+      bool        save_mesh_output = false;
 
       for (int i = 1; i < argc; ++i)
         {
@@ -1102,13 +1123,17 @@ int main(int argc, char **argv)
                           ExcMessage("Missing value for --output-dir."));
               output_directory = argv[++i];
             }
+          else if (argument == "--save-mesh")
+            save_mesh_output = true;
           else
             AssertThrow(false,
                         ExcMessage("Unknown command line argument: " +
                                    argument));
         }
  
-      StationaryNavierStokes<2> flow(/* degree = */ 1, output_directory);
+      StationaryNavierStokes<2> flow(/* degree = */ 1,
+                                     output_directory,
+                                     save_mesh_output);
       flow.run(4);
     }
   catch (std::exception &exc)
