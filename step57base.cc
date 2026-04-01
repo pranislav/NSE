@@ -43,6 +43,7 @@
  
 #include <deal.II/grid/grid_in.h>
  
+#include <filesystem>
 #include <fstream>
 #include <iostream>
  
@@ -55,7 +56,8 @@ namespace Step57
   class StationaryNavierStokes
   {
   public:
-    StationaryNavierStokes(const unsigned int degree);
+    StationaryNavierStokes(const unsigned int degree,
+                           const std::string &output_directory = ".");
     void run(const unsigned int refinement);
  
   private:
@@ -111,6 +113,7 @@ namespace Step57
     const double                         fluid_thermal_conductivity;
     const double                         solid_thermal_conductivity;
     const unsigned int                   degree;
+    const std::string                    output_directory;
     std::vector<types::global_dof_index> dofs_per_block;
  
     Triangulation<dim>    triangulation;
@@ -177,7 +180,7 @@ namespace Step57
     {
       const double y = p[1];
       if (component == 0 && y >= 1 && y <= 2) {
-        return 10 * (y - 1) * (2 - y);
+        return (y - 1) * (2 - y);
       }
       return 0;
     }
@@ -271,12 +274,15 @@ namespace Step57
   }
  
   template <int dim>
-  StationaryNavierStokes<dim>::StationaryNavierStokes(const unsigned int degree)
+  StationaryNavierStokes<dim>::StationaryNavierStokes(
+    const unsigned int degree,
+    const std::string &output_directory)
     : viscosity(1.0 / 7500.0)
     , gamma(1.0)
     , fluid_thermal_conductivity(1.0)
     , solid_thermal_conductivity(5.0)
     , degree(degree)
+    , output_directory(output_directory)
     , triangulation(Triangulation<dim>::maximum_smoothing)
     , fe_fluid(FE_Q<dim>(degree + 1) ^ dim, FE_Q<dim>(degree))
     , fe_solid(FE_Nothing<dim>(), dim, FE_Nothing<dim>(), 1)
@@ -750,9 +756,9 @@ namespace Step57
     preconditioner.initialize(temperature_matrix,
                               SparseILU<double>::AdditionalData());
     gmres.solve(temperature_matrix,
-                temperature_solution,
-                temperature_rhs,
-                preconditioner);
+             temperature_solution,
+             temperature_rhs,
+             preconditioner);
     temperature_constraints.distribute(temperature_solution);
   }
 
@@ -909,6 +915,8 @@ namespace Step57
   void StationaryNavierStokes<dim>::output_results(
     const unsigned int output_index) const
   {
+    std::filesystem::create_directories(output_directory);
+
     std::vector<std::string> solution_names(dim, "velocity");
     solution_names.emplace_back("pressure");
  
@@ -930,8 +938,8 @@ namespace Step57
                                "temperature");
     data_out.build_patches();
  
-    std::string output_dir = ".";
-    std::ofstream output(output_dir + "/" + std::to_string(1.0 / viscosity) + "-solution-" +
+    std::ofstream output(output_directory + "/" +
+                         std::to_string(1.0 / viscosity) + "-solution-" +
                          Utilities::int_to_string(output_index, 4) + ".vtk");
     data_out.write_vtk(output);
   }
@@ -939,8 +947,10 @@ namespace Step57
   template <int dim>
   void StationaryNavierStokes<dim>::process_solution(unsigned int refinement)
   {
-    std::ofstream f(std::to_string(1.0 / viscosity) + "-line-" +
-                    std::to_string(refinement) + ".txt");
+    std::filesystem::create_directories(output_directory);
+
+    std::ofstream f(output_directory + "/" + std::to_string(1.0 / viscosity) +
+                    "-line-" + std::to_string(refinement) + ".txt");
     f << "# y u_x u_y" << std::endl;
  
     Point<dim> p;
@@ -1015,13 +1025,31 @@ namespace Step57
   }
 } // namespace Step57
  
-int main()
+int main(int argc, char **argv)
 {
   try
     {
       using namespace Step57;
+
+      std::string output_directory = ".";
+
+      for (int i = 1; i < argc; ++i)
+        {
+          const std::string argument = argv[i];
+
+          if (argument == "--output-dir")
+            {
+              AssertThrow(i + 1 < argc,
+                          ExcMessage("Missing value for --output-dir."));
+              output_directory = argv[++i];
+            }
+          else
+            AssertThrow(false,
+                        ExcMessage("Unknown command line argument: " +
+                                   argument));
+        }
  
-      StationaryNavierStokes<2> flow(/* degree = */ 1);
+      StationaryNavierStokes<2> flow(/* degree = */ 1, output_directory);
       flow.run(4);
     }
   catch (std::exception &exc)
