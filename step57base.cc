@@ -173,6 +173,31 @@ namespace Step57
   private:
     const double temperature;
   };
+
+  template <int dim>
+  class LocalizedInletTemperatureBoundaryValues : public Function<dim>
+  {
+  public:
+    LocalizedInletTemperatureBoundaryValues()
+      : Function<dim>(1)
+    {}
+
+    virtual double value(const Point<dim>  &p,
+                         const unsigned int component) const override
+    {
+      AssertIndexRange(component, 1);
+
+      const double center = 1.5;
+      const double half_width = 0.15;
+      const double distance = std::abs(p[1] - center);
+
+      if (distance >= half_width)
+        return 0.0;
+
+      const double phase = numbers::PI * distance / half_width;
+      return 0.5 * (1.0 + std::cos(phase));
+    }
+  };
  
   template <int dim>
   double BoundaryValues<dim>::value(const Point<dim> &p,
@@ -386,10 +411,11 @@ namespace Step57
                                              TemperatureBoundaryValues<dim>(0.0),
                                              temperature_constraints);
     // Use a hot inflow to make advection effects visible in the coupled
-    // fluid-solid temperature field.
+    // fluid-solid temperature field. A localized hot patch creates thermal
+    // layers that make temperature-based refinement visible.
     VectorTools::interpolate_boundary_values(temperature_dof_handler,
                                              60,
-                                             TemperatureBoundaryValues<dim>(1.0),
+                                             LocalizedInletTemperatureBoundaryValues<dim>(),
                                              temperature_constraints);
     temperature_constraints.close();
 
@@ -778,6 +804,8 @@ namespace Step57
   template <int dim>
   void StationaryNavierStokes<dim>::refine_mesh()
   {
+    Vector<float> flow_error_per_cell(triangulation.n_active_cells());
+    Vector<float> temperature_error_per_cell(triangulation.n_active_cells());
     Vector<float> estimated_error_per_cell(triangulation.n_active_cells());
     const FEValuesExtractors::Vector velocity(0);
 
@@ -790,8 +818,33 @@ namespace Step57
       face_quadratures,
       std::map<types::boundary_id, const Function<dim> *>(),
       present_solution,
-      estimated_error_per_cell,
+      flow_error_per_cell,
       fe_collection.component_mask(velocity));
+
+    if (temperature_solution.size() == temperature_dof_handler.n_dofs())
+      KellyErrorEstimator<dim>::estimate(
+        temperature_dof_handler,
+        QGauss<dim - 1>(degree + 1),
+        std::map<types::boundary_id, const Function<dim> *>(),
+        temperature_solution,
+        temperature_error_per_cell);
+
+    const float max_flow_error = flow_error_per_cell.linfty_norm();
+    const float max_temperature_error = temperature_error_per_cell.linfty_norm();
+
+    for (unsigned int cell = 0; cell < estimated_error_per_cell.size(); ++cell)
+      {
+        const float normalized_flow_error =
+          max_flow_error > 0.0f ? flow_error_per_cell[cell] / max_flow_error :
+                                  0.0f;
+        const float normalized_temperature_error =
+          max_temperature_error > 0.0f ?
+            temperature_error_per_cell[cell] / max_temperature_error :
+            0.0f;
+
+        estimated_error_per_cell[cell] =
+          std::max(normalized_flow_error, normalized_temperature_error);
+      }
  
     GridRefinement::refine_and_coarsen_fixed_number(triangulation,
                                                     estimated_error_per_cell,
