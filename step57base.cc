@@ -177,7 +177,7 @@ namespace Step57
     {
       const double y = p[1];
       if (component == 0 && y >= 1 && y <= 2) {
-        return (y - 1) * (2 - y);
+        return 10 * (y - 1) * (2 - y);
       }
       return 0;
     }
@@ -379,6 +379,8 @@ namespace Step57
                                              20,
                                              TemperatureBoundaryValues<dim>(0.0),
                                              temperature_constraints);
+    // Use a hot inflow to make advection effects visible in the coupled
+    // fluid-solid temperature field.
     VectorTools::interpolate_boundary_values(temperature_dof_handler,
                                              60,
                                              TemperatureBoundaryValues<dim>(1.0),
@@ -742,14 +744,15 @@ namespace Step57
   void StationaryNavierStokes<dim>::solve_temperature()
   {
     SolverControl solver_control(temperature_matrix.m(),
-                                 1e-12 * temperature_rhs.l2_norm() + 1e-14);
-    SolverCG<Vector<double>> cg(solver_control);
-    PreconditionSSOR<SparseMatrix<double>> preconditioner;
-    preconditioner.initialize(temperature_matrix, 1.2);
-    cg.solve(temperature_matrix,
-             temperature_solution,
-             temperature_rhs,
-             preconditioner);
+                                 1e-6 * temperature_rhs.l2_norm() + 1e-12);
+    SolverGMRES<Vector<double>> gmres(solver_control);
+    SparseILU<double>           preconditioner;
+    preconditioner.initialize(temperature_matrix,
+                              SparseILU<double>::AdditionalData());
+    gmres.solve(temperature_matrix,
+                temperature_solution,
+                temperature_rhs,
+                preconditioner);
     temperature_constraints.distribute(temperature_solution);
   }
 
