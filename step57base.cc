@@ -694,13 +694,20 @@ namespace Step57
     std::vector<Tensor<1, dim>>           grad_phi_T(dofs_per_cell);
     std::vector<double>                   phi_T(dofs_per_cell);
     std::vector<Tensor<1, dim>>           velocity_values(n_q_points);
+    std::vector<typename DoFHandler<dim>::active_cell_iterator> flow_cells(
+      triangulation.n_active_cells(), dof_handler.end());
 
-    auto flow_cell = dof_handler.begin_active();
+    for (const auto &flow_cell : dof_handler.active_cell_iterators())
+      flow_cells[flow_cell->active_cell_index()] = flow_cell;
+
     for (const auto &cell : temperature_dof_handler.active_cell_iterators())
       {
         local_matrix = 0;
         local_rhs    = 0;
         temperature_fe_values.reinit(cell);
+
+        const auto flow_cell = flow_cells[cell->active_cell_index()];
+        Assert(flow_cell != dof_handler.end(), ExcInternalError());
 
         const bool   in_fluid_domain = cell_is_in_fluid_domain(flow_cell);
         const double thermal_conductivity =
@@ -742,7 +749,6 @@ namespace Step57
                                                            local_dof_indices,
                                                            temperature_matrix,
                                                            temperature_rhs);
-        ++flow_cell;
       }
   }
 
