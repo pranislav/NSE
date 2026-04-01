@@ -15,6 +15,7 @@
    Step 2: remove brittle assumptions in fluid/solid classification and velocity lookup between the two DoFHandlers.
    Step 3: add verification output or checks for thermal boundary conditions and expected temperature bounds.
    Step 4: assess whether advection stabilization is needed and add SUPG or another stabilization if required.
+   Current status: keep SUPG-style stabilization as an experimental branch for high-Peclet runs, not in the mainline code by default.
    Step 5: revisit refinement and decide whether to keep velocity-only refinement or combine flow and temperature indicators.
 6. Leave contact resistance and temperature jumps out of scope for now.
    If those are needed later, add explicit interior-face terms on fluid-solid interfaces.
