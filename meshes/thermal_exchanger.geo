@@ -49,15 +49,15 @@ Line(15) = {10, 5};
 Line(16) = {9, 6};
 
 // ---------------- CURVES and SURFACES ----------------
-Curve Loop(100) = {1, 2, -13, 12}; // top wall
+Curve Loop(100) = {1, 2, -13, 12}; // bottom wall
 Plane Surface(100) = {100};
-Curve Loop(200) = {13, 3, -14, 11}; // top fluid
+Curve Loop(200) = {13, 3, -14, 11}; // bottom fluid
 Plane Surface(200) = {200};
 Curve Loop(300) = {14, 4, -15, 10}; // membrane
 Plane Surface(300) = {300};
-Curve Loop(400) = {15, 5, -16, 9}; // bottom fluid
+Curve Loop(400) = {15, 5, -16, 9}; // top fluid
 Plane Surface(400) = {400};
-Curve Loop(500) = {16, 6, 7, 8}; // bottom wall
+Curve Loop(500) = {16, 6, 7, 8}; // top wall
 Plane Surface(500) = {500};
 
 
@@ -81,17 +81,17 @@ Recombine Surface {100, 200, 300, 400, 500};
 // ---------------- PHYSICAL GROUPS ----------------
 
 // boundaries
-Physical Curve(10) = {1}; // top
-Physical Curve(20) = {7}; // bottom
-Physical Curve(30) = {11}; // top inlet
-Physical Curve(40) = {5}; // bottom inlet
+Physical Curve(10) = {1}; // bottom
+Physical Curve(20) = {7}; // top
+Physical Curve(30) = {11}; // lower inlet
+Physical Curve(40) = {5}; // upper inlet
 // Physical Curve(70) = {9, 10}; // fluid - walls interfaces
 
 
 // Materials
 Physical Surface(0) = {200, 400}; // fluid
-Physical Surface(1) = {100, 500}; // walls
-Physical Surface(2) = {300}; // membrane
+Physical Surface(1) = {100, 500, 300}; // walls
+// Physical Surface(2) = {300}; // membrane
 
 // ---------------- MESH ----------------
 Mesh.RecombineAll = 1;

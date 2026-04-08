@@ -7,6 +7,7 @@
 #include <deal.II/base/function.h>
 #include <deal.II/base/utilities.h>
 #include <deal.II/base/tensor.h>
+#include <deal.II/base/exceptions.h>
  
 #include <deal.II/lac/block_vector.h>
 #include <deal.II/lac/full_matrix.h>
@@ -46,11 +47,61 @@
  
 #include <filesystem>
 #include <fstream>
+#include <regex>
 #include <iostream>
  
 namespace Step57
 {
   using namespace dealii;
+
+  struct InflowsParameters
+  {
+    double pipe_len;
+    double pipe_diameter;
+    double lower_inflow_height;
+    double higher_inflow_height;
+  };
+
+  InflowsParameters read_inflows_parameters_from_geo(const std::string &geo_file)
+  {
+    std::ifstream in(geo_file);
+    AssertThrow(in, ExcFileNotOpen(geo_file));
+
+    const std::regex parameter_regex(
+      R"(^\s*(length|h_fluid|h_insul|h_membrane)\s*=\s*([0-9]+(?:\.[0-9]*)?(?:[eE][-+]?[0-9]+)?)\s*;\s*$)");
+
+    double length = 0.0;
+    double h_fluid = 0.0;
+    double h_insul = 0.0;
+    double h_membrane = 0.0;
+
+    std::string line;
+    while (std::getline(in, line))
+      {
+        std::smatch match;
+        if (!std::regex_match(line, match, parameter_regex))
+          continue;
+
+        const double value = std::stod(match[2].str());
+        const std::string name = match[1].str();
+        if (name == "length")
+          length = value;
+        else if (name == "h_fluid")
+          h_fluid = value;
+        else if (name == "h_insul")
+          h_insul = value;
+        else if (name == "h_membrane")
+          h_membrane = value;
+      }
+
+    AssertThrow(length > 0.0, ExcMessage("Missing length in geo file."));
+    AssertThrow(h_fluid > 0.0, ExcMessage("Missing h_fluid in geo file."));
+    AssertThrow(h_insul > 0.0, ExcMessage("Missing h_insul in geo file."));
+    AssertThrow(h_membrane >= 0.0,
+                ExcMessage("Missing h_membrane in geo file."));
+
+    return {length, h_fluid, h_insul, h_insul + h_fluid + h_membrane};
+  }
  
  
   template <int dim>
@@ -115,6 +166,7 @@ namespace Step57
     double                               gamma;
     const double                         fluid_thermal_conductivity;
     const double                         solid_thermal_conductivity;
+    const InflowsParameters              inflows_params;
     const unsigned int                   degree;
     const std::string                    output_directory;
     const bool                           save_mesh_output;
@@ -151,11 +203,15 @@ namespace Step57
   class VelocityBoundaryValues : public Function<dim>
   {
   public:
-    VelocityBoundaryValues()
+    VelocityBoundaryValues(const InflowsParameters &inflows_params)
       : Function<dim>(dim + 1)
+      , inflows_params(inflows_params)
     {}
     virtual double value(const Point<dim>  &p,
                          const unsigned int component) const override;
+
+  private:
+    const InflowsParameters &inflows_params;
   };
 
     template <int dim>
@@ -163,9 +219,20 @@ namespace Step57
                                       const unsigned int component) const
       {
         const double y = p[1];
-        if (component == 0 && y >= 1 && y <= 2) {
-          return (y - 1) * (2 - y);
-        }
+        if (std::abs(p[0]) < 1e-12) // lower pipe
+          {
+          const double z0 = inflows_params.lower_inflow_height;
+          const double z1 = z0 + inflows_params.pipe_diameter;
+          if (component == 0 && y >= z0 && y <= z1)
+            return (y - z0) * (z1 - y);
+          }
+        else if (std::abs(p[0] - inflows_params.pipe_len) < 1e-12)
+          {
+          const double z0 = inflows_params.higher_inflow_height;
+          const double z1 = z0 + inflows_params.pipe_diameter;
+          if (component == 0 && y >= z0 && y <= z1)
+            return - (y - z0) * (z1 - y);
+          }
         return 0;
       }
 
@@ -312,6 +379,8 @@ namespace Step57
     , gamma(1.0)
     , fluid_thermal_conductivity(1.0)
     , solid_thermal_conductivity(5.0)
+    , inflows_params(
+        read_inflows_parameters_from_geo("../meshes/thermal_exchanger.geo"))
     , degree(degree)
     , output_directory(output_directory)
     , save_mesh_output(save_mesh_output)
@@ -410,20 +479,14 @@ namespace Step57
     DoFTools::make_hanging_node_constraints(temperature_dof_handler,
                                             temperature_constraints);
     VectorTools::interpolate_boundary_values(temperature_dof_handler,
-                                             10,
-                                             TemperatureBoundaryValues<dim>(0.0),
+                                             30,
+                                             TemperatureBoundaryValues<dim>(1.0),
                                              temperature_constraints);
     VectorTools::interpolate_boundary_values(temperature_dof_handler,
-                                             20,
+                                             40,
                                              TemperatureBoundaryValues<dim>(0.0),
                                              temperature_constraints);
-    // Use a hot inflow to make advection effects visible in the coupled
-    // fluid-solid temperature field. A localized hot patch creates thermal
-    // layers that make temperature-based refinement visible.
-    VectorTools::interpolate_boundary_values(temperature_dof_handler,
-                                             60,
-                                             LocalizedInletTemperatureBoundaryValues<dim>(),
-                                             temperature_constraints);
+
     temperature_constraints.close();
 
     DynamicSparsityPattern dsp(temperature_dof_handler.n_dofs());
@@ -463,21 +526,14 @@ namespace Step57
  
       DoFTools::make_hanging_node_constraints(dof_handler, nonzero_constraints);
 
-      for (int id: {10, 20}) {
+      for (int id: {30, 40}) {
         VectorTools::interpolate_boundary_values(
           dof_handler,
           id,
-          Functions::ZeroFunction<dim>(dim + 1),
+          VelocityBoundaryValues<dim>(inflows_params),
           nonzero_constraints,
           fe_collection.component_mask(velocities));
-      }
-
-      VectorTools::interpolate_boundary_values(
-        dof_handler,
-        60,
-        VelocityBoundaryValues<dim>(),
-        nonzero_constraints,
-        fe_collection.component_mask(velocities));
+        }
 
       add_fluid_solid_interface_constraints(nonzero_constraints);
 
@@ -489,7 +545,7 @@ namespace Step57
  
       DoFTools::make_hanging_node_constraints(dof_handler, zero_constraints);
 
-      for (int id: {10, 20, 30, 40, 60}) {
+      for (int id: {30, 40}) {
         VectorTools::interpolate_boundary_values(
           dof_handler,
           id,
@@ -1076,7 +1132,7 @@ namespace Step57
   {
     GridIn<dim> grid_in;
     grid_in.attach_triangulation(triangulation);
-    std::ifstream input_file("../meshes/pipe.msh");
+    std::ifstream input_file("../meshes/thermal_exchanger.msh");
     Assert(dim == 2, ExcNotImplemented());
 
     grid_in.read_msh(input_file);
