@@ -148,15 +148,26 @@ namespace Step57
  
  
   template <int dim>
-  class BoundaryValues : public Function<dim>
+  class VelocityBoundaryValues : public Function<dim>
   {
   public:
-    BoundaryValues()
+    VelocityBoundaryValues()
       : Function<dim>(dim + 1)
     {}
     virtual double value(const Point<dim>  &p,
                          const unsigned int component) const override;
   };
+
+    template <int dim>
+    double VelocityBoundaryValues<dim>::value(const Point<dim> &p,
+                                      const unsigned int component) const
+      {
+        const double y = p[1];
+        if (component == 0 && y >= 1 && y <= 2) {
+          return (y - 1) * (2 - y);
+        }
+        return 0;
+      }
 
   template <int dim>
   class TemperatureBoundaryValues : public Function<dim>
@@ -203,16 +214,6 @@ namespace Step57
     }
   };
  
-  template <int dim>
-  double BoundaryValues<dim>::value(const Point<dim> &p,
-                                    const unsigned int component) const
-    {
-      const double y = p[1];
-      if (component == 0 && y >= 1 && y <= 2) {
-        return (y - 1) * (2 - y);
-      }
-      return 0;
-    }
   // {
   //   Assert(component < this->n_components,
   //          ExcIndexRange(component, 0, this->n_components));
@@ -462,7 +463,7 @@ namespace Step57
  
       DoFTools::make_hanging_node_constraints(dof_handler, nonzero_constraints);
 
-      for (int id: {10, 20, 30, 40}) {
+      for (int id: {10, 20}) {
         VectorTools::interpolate_boundary_values(
           dof_handler,
           id,
@@ -474,7 +475,7 @@ namespace Step57
       VectorTools::interpolate_boundary_values(
         dof_handler,
         60,
-        BoundaryValues<dim>(),
+        VelocityBoundaryValues<dim>(),
         nonzero_constraints,
         fe_collection.component_mask(velocities));
 
@@ -1069,7 +1070,7 @@ namespace Step57
             f->set_boundary_id(10); // walls
         }
   }
- 
+
   template <int dim>
   void StationaryNavierStokes<dim>::run(const unsigned int refinement)
   {
