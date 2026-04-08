@@ -1,0 +1,10 @@
+- read step 31 (flow + temperature)
+- explain (flux continuity is enforced weakly by the standard diffusion bilinear form) - heat flux from context
+- (steady) advection - diffusion equations - how does the heat transfer work in moving fluid
+- ako chceme okrajove podmienky
+- nakreslit to analyticke riesenie
+- a porovnat s numerickym (nejak smart)
+- zohnat to analyticke riesenie
+- pridat vypisovacky aj na teplotu
+- skontrolovat assembly advection termu
++ run with specified dir to save solutions

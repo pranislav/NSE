@@ -1,0 +1,22 @@
+- obrazky rieseni:
+    - flow in cavity pipe
+    - flow in pipe with solid walls
+    - flow with temperature + advection term
+        - solid conductivity 5.0 vs 0.5
+        - fluid velocity 1 vs 10
+- na com to viazlo:
+    -mesh issues - hodne casu,
+    hlavne asi hlupe inflow - outflow swapped boundary ids
+    - inner bc
+- inner boundary naozaj riesia tak komplikovane 
+    - [step-46](vscode://file/usr/local/examples/step-46/step-46.cc:348)
+    - chatGPT https://chatgpt.com/share/69ccd9c2-7f48-832b-8d79-1e0332811cb1
+- the weak form automatically enforces heat flux continuity if
+    - temperature is a single global DoF field (shared across fluid + solid)
+    - material parameter k(x) is piecewise defined
+    - https://chatgpt.com/share/69ce3ccb-ca88-832b-9ffc-a7eeb960b0c9
+- temperature-aware refinement - show telegram
+- codex
+- analyticke riesenie - ako presne to vyzera a ako presne to porovnat
+    - pridat disipacny clen?
+    - https://chatgpt.com/share/69ce3475-99c4-832f-9847-e3103e18837d
