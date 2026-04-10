@@ -378,7 +378,7 @@ namespace Step57
     : viscosity(1.0 / 7500.0)
     , gamma(1.0)
     , fluid_thermal_conductivity(1.0)
-    , solid_thermal_conductivity(5.0)
+    , solid_thermal_conductivity(0.5)
     , inflows_params(
         read_inflows_parameters_from_geo("../meshes/thermal_exchanger.geo"))
     , degree(degree)
