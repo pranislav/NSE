@@ -224,14 +224,14 @@ namespace Step57
           const double z0 = inflows_params.lower_inflow_height;
           const double z1 = z0 + inflows_params.pipe_diameter;
           if (component == 0 && y >= z0 && y <= z1)
-            return (y - z0) * (z1 - y);
+            return 10 * (y - z0) * (z1 - y);
           }
         else if (std::abs(p[0] - inflows_params.pipe_len) < 1e-12)
           {
           const double z0 = inflows_params.higher_inflow_height;
           const double z1 = z0 + inflows_params.pipe_diameter;
           if (component == 0 && y >= z0 && y <= z1)
-            return - (y - z0) * (z1 - y);
+            return -10 * (y - z0) * (z1 - y);
           }
         return 0;
       }
