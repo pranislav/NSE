@@ -8,3 +8,4 @@
 - pridat vypisovacky aj na teplotu
 - skontrolovat assembly advection termu
 + run with specified dir to save solutions
+- vypocet presnejsich rieseni sa exponencialne spomaluje - zla implementacia?
