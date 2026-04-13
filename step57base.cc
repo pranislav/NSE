@@ -117,8 +117,9 @@ namespace Step57
 
     enum
     {
-      fluid_domain_id,
-      solid_domain_id
+      fluid_material_id,
+      insulator_material_id,
+      conductor_material_id
     };
 
     static bool cell_is_in_fluid_domain(
@@ -161,11 +162,14 @@ namespace Step57
                           const bool         output_result);
  
     void compute_initial_guess(double step_size);
+
+    double solid_thermal_conductivity(dealii::types::material_id material_id);
  
     double                               viscosity;
     double                               gamma;
     const double                         fluid_thermal_conductivity;
-    const double                         solid_thermal_conductivity;
+    const double                         conductor_thermal_conductivity;
+    const double                         insulator_thermal_conductivity;
     const InflowsParameters              inflows_params;
     const unsigned int                   degree;
     const std::string                    output_directory;
@@ -378,7 +382,8 @@ namespace Step57
     : viscosity(1.0 / 7500.0)
     , gamma(1.0)
     , fluid_thermal_conductivity(1.0)
-    , solid_thermal_conductivity(0.5)
+    , conductor_thermal_conductivity(0.5)
+    , insulator_thermal_conductivity(5.0)
     , inflows_params(
         read_inflows_parameters_from_geo("../meshes/thermal_exchanger.geo"))
     , degree(degree)
@@ -399,7 +404,7 @@ namespace Step57
   bool StationaryNavierStokes<dim>::cell_is_in_fluid_domain(
     const typename DoFHandler<dim>::cell_iterator &cell)
   {
-    return (cell->material_id() == fluid_domain_id);
+    return (cell->material_id() == fluid_material_id);
   }
 
 
@@ -407,7 +412,8 @@ namespace Step57
   bool StationaryNavierStokes<dim>::cell_is_in_solid_domain(
     const typename DoFHandler<dim>::cell_iterator &cell)
   {
-    return (cell->material_id() == solid_domain_id);
+    return (cell->material_id() == insulator_material_id ||
+            cell->material_id() == conductor_material_id);
   }
 
   template <int dim>
@@ -756,6 +762,17 @@ namespace Step57
   }
 
   template <int dim>
+  double StationaryNavierStokes<dim>::
+    solid_thermal_conductivity(dealii::types::material_id material_id)
+  {
+    if (material_id == 1)
+      return insulator_thermal_conductivity;
+    if(material_id == 2)
+      return conductor_thermal_conductivity;
+    throw std::runtime_error("unexpected material id in solid domain");
+  }
+
+  template <int dim>
   void StationaryNavierStokes<dim>::assemble_temperature_system()
   {
     temperature_matrix = 0;
@@ -801,7 +818,7 @@ namespace Step57
         const bool   in_fluid_domain = cell_is_in_fluid_domain(flow_cell);
         const double thermal_conductivity =
           in_fluid_domain ? fluid_thermal_conductivity :
-                            solid_thermal_conductivity;
+                            solid_thermal_conductivity(cell->material_id());
 
         if (in_fluid_domain)
           {
