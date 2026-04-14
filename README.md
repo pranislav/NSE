@@ -16,11 +16,11 @@ The project expects a deal.II installation with `UMFPACK` enabled, as checked in
 
 ## Run
 
-Run the executable from the `build/` directory so the mesh path `../pipe.msh` resolves correctly:
+Run the executable from the `build/` directory and pass a case file:
 
 ```bash
 cd build
-./step57base
+./step57base --case ../cases/heat_exchanger.prm
 ```
 
 ## Output Directory
@@ -32,7 +32,26 @@ Example:
 
 ```bash
 cd build
-./step57base --output-dir ../results/run_01
+./step57base --case ../cases/heat_exchanger.prm --output-dir ../results/run_01
 ```
 
 If `--output-dir` is omitted, output files are written to the current working directory.
+
+## Case Files
+
+Simulation setup is now split into:
+
+- mesh files in [`meshes/`](/home/branislav/Vysoka/phd?/deal/NSE/meshes)
+- case files in [`cases/`](/home/branislav/Vysoka/phd?/deal/NSE/cases)
+
+A case file defines:
+
+- which mesh to load
+- one subsection per material ID with its kind and properties
+- velocity boundary conditions
+- temperature Dirichlet boundary conditions
+
+Current examples:
+
+- [`cases/heat_exchanger.prm`](/home/branislav/Vysoka/phd?/deal/NSE/cases/heat_exchanger.prm)
+- [`cases/pipe.prm`](/home/branislav/Vysoka/phd?/deal/NSE/cases/pipe.prm)

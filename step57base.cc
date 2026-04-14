@@ -8,6 +8,7 @@
 #include <deal.II/base/utilities.h>
 #include <deal.II/base/tensor.h>
 #include <deal.II/base/exceptions.h>
+#include <deal.II/base/parameter_handler.h>
  
 #include <deal.II/lac/block_vector.h>
 #include <deal.II/lac/full_matrix.h>
@@ -47,90 +48,294 @@
  
 #include <filesystem>
 #include <fstream>
-#include <regex>
 #include <iostream>
+#include <limits>
+#include <map>
+#include <set>
+#include <sstream>
  
 namespace Step57
 {
   using namespace dealii;
 
-  struct InflowsParameters
+  std::vector<std::string> split_string(const std::string &input,
+                                        const char         delimiter)
   {
-    double pipe_len;
-    double pipe_diameter;
-    double lower_inflow_height;
-    double higher_inflow_height;
-  };
+    std::vector<std::string> parts;
+    std::stringstream        stream(input);
+    std::string              item;
 
-  InflowsParameters read_inflows_parameters_from_geo(const std::string &geo_file)
-  {
-    std::ifstream in(geo_file);
-    AssertThrow(in, ExcFileNotOpen(geo_file));
-
-    const std::regex parameter_regex(
-      R"(^\s*(length|h_fluid|h_insul|h_membrane)\s*=\s*([0-9]+(?:\.[0-9]*)?(?:[eE][-+]?[0-9]+)?)\s*;\s*$)");
-
-    double length = 0.0;
-    double h_fluid = 0.0;
-    double h_insul = 0.0;
-    double h_membrane = 0.0;
-
-    std::string line;
-    while (std::getline(in, line))
+    while (std::getline(stream, item, delimiter))
       {
-        std::smatch match;
-        if (!std::regex_match(line, match, parameter_regex))
-          continue;
-
-        const double value = std::stod(match[2].str());
-        const std::string name = match[1].str();
-        if (name == "length")
-          length = value;
-        else if (name == "h_fluid")
-          h_fluid = value;
-        else if (name == "h_insul")
-          h_insul = value;
-        else if (name == "h_membrane")
-          h_membrane = value;
+        item = Utilities::trim(item);
+        if (!item.empty())
+          parts.push_back(item);
       }
 
-    AssertThrow(length > 0.0, ExcMessage("Missing length in geo file."));
-    AssertThrow(h_fluid > 0.0, ExcMessage("Missing h_fluid in geo file."));
-    AssertThrow(h_insul > 0.0, ExcMessage("Missing h_insul in geo file."));
-    AssertThrow(h_membrane >= 0.0,
-                ExcMessage("Missing h_membrane in geo file."));
-
-    return {length, h_fluid, h_insul, h_insul + h_fluid + h_membrane};
+    return parts;
   }
- 
+
+  std::filesystem::path resolve_relative_path(const std::string &base_file,
+                                              const std::string &path)
+  {
+    const std::filesystem::path file_path(path);
+    if (file_path.is_absolute())
+      return file_path;
+
+    return std::filesystem::path(base_file).parent_path() / file_path;
+  }
+
+  struct VelocityBoundaryCondition
+  {
+    enum class Type
+    {
+      constant,
+      parabolic
+    };
+
+    types::boundary_id boundary_id;
+    Type               type;
+    unsigned int       component;
+    unsigned int       coordinate;
+    double             value;
+  };
+
+  struct TemperatureBoundaryCondition
+  {
+    types::boundary_id boundary_id;
+    double             value;
+  };
+
+  struct MaterialData
+  {
+    enum class Kind
+    {
+      fluid,
+      solid
+    };
+
+    Kind   kind;
+    double thermal_conductivity;
+  };
+
+  struct CaseConfig
+  {
+    std::string                                  mesh_file;
+    double                                       reynolds;
+    double                                       gamma;
+    unsigned int                                 degree;
+    unsigned int                                 adaptive_refinement_cycles;
+    std::map<types::material_id, MaterialData>   materials;
+    std::set<types::boundary_id>                 no_slip_boundary_ids;
+    std::vector<VelocityBoundaryCondition>       velocity_dirichlet_boundaries;
+    std::vector<TemperatureBoundaryCondition>    temperature_dirichlet_boundaries;
+  };
+
+  std::set<types::boundary_id> parse_boundary_id_set(const std::string &text)
+  {
+    std::set<types::boundary_id> ids;
+    for (const auto &token : split_string(text, ','))
+      ids.insert(static_cast<types::boundary_id>(std::stoi(token)));
+    return ids;
+  }
+
+  std::set<types::material_id> parse_material_id_set(const std::string &text)
+  {
+    std::set<types::material_id> ids;
+    for (const auto &token : split_string(text, ','))
+      ids.insert(static_cast<types::material_id>(std::stoi(token)));
+    return ids;
+  }
+
+  MaterialData::Kind parse_material_kind(const std::string &text)
+  {
+    if (text == "fluid")
+      return MaterialData::Kind::fluid;
+    if (text == "solid")
+      return MaterialData::Kind::solid;
+
+    AssertThrow(false, ExcMessage("Unsupported material kind: " + text));
+    return MaterialData::Kind::solid;
+  }
+
+  std::vector<VelocityBoundaryCondition>
+  parse_velocity_boundary_conditions(const std::string &text)
+  {
+    std::vector<VelocityBoundaryCondition> conditions;
+
+    for (const auto &entry : split_string(text, ';'))
+      {
+        const auto parts = split_string(entry, ':');
+        AssertThrow(parts.size() == 5,
+                    ExcMessage(
+                      "Velocity boundary entries must be "
+                      "boundary_id:type:component:coordinate:value."));
+
+        VelocityBoundaryCondition condition;
+        condition.boundary_id =
+          static_cast<types::boundary_id>(std::stoi(parts[0]));
+        if (parts[1] == "constant")
+          condition.type = VelocityBoundaryCondition::Type::constant;
+        else if (parts[1] == "parabolic")
+          condition.type = VelocityBoundaryCondition::Type::parabolic;
+        else
+          AssertThrow(false,
+                      ExcMessage("Unsupported velocity boundary type: " +
+                                 parts[1]));
+        condition.component  = std::stoi(parts[2]);
+        condition.coordinate = std::stoi(parts[3]);
+        condition.value      = std::stod(parts[4]);
+        conditions.push_back(condition);
+      }
+
+    return conditions;
+  }
+
+  std::vector<TemperatureBoundaryCondition>
+  parse_temperature_boundary_conditions(const std::string &text)
+  {
+    std::vector<TemperatureBoundaryCondition> conditions;
+
+    for (const auto &entry : split_string(text, ';'))
+      {
+        const auto parts = split_string(entry, ':');
+        AssertThrow(parts.size() == 2,
+                    ExcMessage(
+                      "Temperature boundary entries must be boundary_id:value."));
+
+        conditions.push_back(
+          {static_cast<types::boundary_id>(std::stoi(parts[0])),
+           std::stod(parts[1])});
+      }
+
+    return conditions;
+  }
+
+  CaseConfig read_case_config(const std::string &case_file)
+  {
+    ParameterHandler prm;
+
+    prm.enter_subsection("Mesh");
+    prm.declare_entry("File", "", Patterns::Anything());
+    prm.leave_subsection();
+
+    prm.enter_subsection("Solver");
+    prm.declare_entry("Reynolds number", "7500", Patterns::Double(0.0));
+    prm.declare_entry("Gamma", "1.0", Patterns::Double(0.0));
+    prm.declare_entry("Polynomial degree", "1", Patterns::Integer(1));
+    prm.declare_entry("Adaptive refinement cycles", "4", Patterns::Integer(0));
+    prm.leave_subsection();
+
+    prm.enter_subsection("Materials");
+    prm.declare_entry("Ids", "0", Patterns::Anything());
+    prm.leave_subsection();
+
+    prm.enter_subsection("Boundary conditions");
+    prm.declare_entry("No-slip boundaries", "", Patterns::Anything());
+    prm.declare_entry("Velocity Dirichlet", "", Patterns::Anything());
+    prm.declare_entry("Temperature Dirichlet", "", Patterns::Anything());
+    prm.leave_subsection();
+
+    prm.parse_input(case_file);
+
+    CaseConfig config;
+
+    prm.enter_subsection("Mesh");
+    config.mesh_file = resolve_relative_path(case_file, prm.get("File")).string();
+    prm.leave_subsection();
+
+    prm.enter_subsection("Solver");
+    config.reynolds                   = prm.get_double("Reynolds number");
+    config.gamma                      = prm.get_double("Gamma");
+    config.degree                     = prm.get_integer("Polynomial degree");
+    config.adaptive_refinement_cycles =
+      prm.get_integer("Adaptive refinement cycles");
+    prm.leave_subsection();
+
+    prm.enter_subsection("Materials");
+    const auto material_ids = parse_material_id_set(prm.get("Ids"));
+    prm.leave_subsection();
+
+    for (const auto material_id : material_ids)
+      {
+        prm.enter_subsection("Materials");
+        prm.enter_subsection("Material " + std::to_string(material_id));
+        prm.declare_entry("Kind", "solid", Patterns::Selection("fluid|solid"));
+        prm.declare_entry("Thermal conductivity", "1.0", Patterns::Double(0.0));
+        prm.leave_subsection();
+        prm.leave_subsection();
+      }
+
+    prm.parse_input(case_file);
+
+    for (const auto material_id : material_ids)
+      {
+        prm.enter_subsection("Materials");
+        prm.enter_subsection("Material " + std::to_string(material_id));
+
+        MaterialData material;
+        material.kind = parse_material_kind(prm.get("Kind"));
+        material.thermal_conductivity = prm.get_double("Thermal conductivity");
+
+        config.materials.emplace(material_id, material);
+
+        prm.leave_subsection();
+        prm.leave_subsection();
+      }
+
+    prm.enter_subsection("Boundary conditions");
+    config.no_slip_boundary_ids =
+      parse_boundary_id_set(prm.get("No-slip boundaries"));
+    config.velocity_dirichlet_boundaries =
+      parse_velocity_boundary_conditions(prm.get("Velocity Dirichlet"));
+    config.temperature_dirichlet_boundaries =
+      parse_temperature_boundary_conditions(prm.get("Temperature Dirichlet"));
+    prm.leave_subsection();
+
+    AssertThrow(!config.mesh_file.empty(),
+                ExcMessage("Case config must define a mesh file."));
+    AssertThrow(!config.materials.empty(),
+                ExcMessage("Case config must define at least one material."));
+
+    return config;
+  }
+
+  template <int dim>
+  struct BoundaryExtent
+  {
+    BoundaryExtent()
+      : initialized(false)
+    {
+      min.fill(std::numeric_limits<double>::max());
+      max.fill(std::numeric_limits<double>::lowest());
+    }
+
+    std::array<double, dim> min;
+    std::array<double, dim> max;
+    bool                    initialized;
+  };
  
   template <int dim>
   class StationaryNavierStokes
   {
   public:
-    StationaryNavierStokes(const unsigned int degree,
+    StationaryNavierStokes(const CaseConfig  &config,
                            const std::string &output_directory = ".",
                            const bool         save_mesh_output = false);
     void run(const unsigned int refinement);
  
   private:
+    const MaterialData &material_data(const types::material_id material_id) const;
+    bool                cell_is_in_fluid_domain(
+                     const typename DoFHandler<dim>::cell_iterator &cell) const;
 
-    enum
-    {
-      fluid_material_id,
-      insulator_material_id,
-      conductor_material_id
-    };
-
-    static bool cell_is_in_fluid_domain(
-      const typename DoFHandler<dim>::cell_iterator &cell);
-
-    static bool cell_is_in_solid_domain(
-      const typename DoFHandler<dim>::cell_iterator &cell);
+    bool cell_is_in_solid_domain(
+      const typename DoFHandler<dim>::cell_iterator &cell) const;
 
     void set_active_fe_indices();
     void add_fluid_solid_interface_constraints(
       AffineConstraints<double> &constraints) const;
+    void collect_boundary_extents();
     void setup_temperature_dofs();
     void assemble_temperature_system();
     void solve_temperature();
@@ -160,21 +365,17 @@ namespace Step57
                           const unsigned int max_n_refinements,
                           const bool         is_initial_step,
                           const bool         output_result);
- 
+
     void compute_initial_guess(double step_size);
 
-    double solid_thermal_conductivity(dealii::types::material_id material_id);
- 
+    const CaseConfig                     config;
     double                               viscosity;
     double                               gamma;
-    const double                         fluid_thermal_conductivity;
-    const double                         conductor_thermal_conductivity;
-    const double                         insulator_thermal_conductivity;
-    const InflowsParameters              inflows_params;
     const unsigned int                   degree;
     const std::string                    output_directory;
     const bool                           save_mesh_output;
     std::vector<types::global_dof_index> dofs_per_block;
+    std::map<types::boundary_id, BoundaryExtent<dim>> boundary_extents;
  
     Triangulation<dim>    triangulation;
     const FESystem<dim>   fe_fluid;
@@ -207,38 +408,44 @@ namespace Step57
   class VelocityBoundaryValues : public Function<dim>
   {
   public:
-    VelocityBoundaryValues(const InflowsParameters &inflows_params)
+    VelocityBoundaryValues(const VelocityBoundaryCondition &condition,
+                           const double                    coordinate_min,
+                           const double                    coordinate_max)
       : Function<dim>(dim + 1)
-      , inflows_params(inflows_params)
+      , condition(condition)
+      , coordinate_min(coordinate_min)
+      , coordinate_max(coordinate_max)
     {}
     virtual double value(const Point<dim>  &p,
                          const unsigned int component) const override;
 
   private:
-    const InflowsParameters &inflows_params;
+    const VelocityBoundaryCondition condition;
+    const double                    coordinate_min;
+    const double                    coordinate_max;
   };
 
-    template <int dim>
-    double VelocityBoundaryValues<dim>::value(const Point<dim> &p,
-                                      const unsigned int component) const
-      {
-        const double y = p[1];
-        if (std::abs(p[0]) < 1e-12) // lower pipe
-          {
-          const double z0 = inflows_params.lower_inflow_height;
-          const double z1 = z0 + inflows_params.pipe_diameter;
-          if (component == 0 && y >= z0 && y <= z1)
-            return 10 * (y - z0) * (z1 - y);
-          }
-        else if (std::abs(p[0] - inflows_params.pipe_len) < 1e-12)
-          {
-          const double z0 = inflows_params.higher_inflow_height;
-          const double z1 = z0 + inflows_params.pipe_diameter;
-          if (component == 0 && y >= z0 && y <= z1)
-            return -10 * (y - z0) * (z1 - y);
-          }
-        return 0;
-      }
+  template <int dim>
+  double VelocityBoundaryValues<dim>::value(const Point<dim> &p,
+                                            const unsigned int component) const
+  {
+    if (component != condition.component)
+      return 0.0;
+
+    if (condition.type == VelocityBoundaryCondition::Type::constant)
+      return condition.value;
+
+    const double width = coordinate_max - coordinate_min;
+    AssertThrow(width > 0.0,
+                ExcMessage("Parabolic velocity boundary has zero width."));
+
+    const double s = p[condition.coordinate];
+    if (s < coordinate_min || s > coordinate_max)
+      return 0.0;
+
+    const double normalized = (s - coordinate_min) * (coordinate_max - s);
+    return 4.0 * condition.value * normalized / (width * width);
+  }
 
   template <int dim>
   class TemperatureBoundaryValues : public Function<dim>
@@ -376,17 +583,13 @@ namespace Step57
  
   template <int dim>
   StationaryNavierStokes<dim>::StationaryNavierStokes(
-    const unsigned int degree,
+    const CaseConfig  &config,
     const std::string &output_directory,
     const bool         save_mesh_output)
-    : viscosity(1.0 / 7500.0)
-    , gamma(1.0)
-    , fluid_thermal_conductivity(1.0)
-    , conductor_thermal_conductivity(0.5)
-    , insulator_thermal_conductivity(5.0)
-    , inflows_params(
-        read_inflows_parameters_from_geo("../meshes/thermal_exchanger.geo"))
-    , degree(degree)
+    : config(config)
+    , viscosity(1.0 / config.reynolds)
+    , gamma(config.gamma)
+    , degree(config.degree)
     , output_directory(output_directory)
     , save_mesh_output(save_mesh_output)
     , triangulation(Triangulation<dim>::maximum_smoothing)
@@ -401,19 +604,30 @@ namespace Step57
   }
 
   template <int dim>
-  bool StationaryNavierStokes<dim>::cell_is_in_fluid_domain(
-    const typename DoFHandler<dim>::cell_iterator &cell)
+  const MaterialData &
+  StationaryNavierStokes<dim>::material_data(
+    const types::material_id material_id) const
   {
-    return (cell->material_id() == fluid_material_id);
+    const auto it = config.materials.find(material_id);
+    AssertThrow(it != config.materials.end(),
+                ExcMessage("Missing material definition for material id " +
+                           std::to_string(material_id) + "."));
+    return it->second;
+  }
+
+  template <int dim>
+  bool StationaryNavierStokes<dim>::cell_is_in_fluid_domain(
+    const typename DoFHandler<dim>::cell_iterator &cell) const
+  {
+    return material_data(cell->material_id()).kind == MaterialData::Kind::fluid;
   }
 
 
   template <int dim>
   bool StationaryNavierStokes<dim>::cell_is_in_solid_domain(
-    const typename DoFHandler<dim>::cell_iterator &cell)
+    const typename DoFHandler<dim>::cell_iterator &cell) const
   {
-    return (cell->material_id() == insulator_material_id ||
-            cell->material_id() == conductor_material_id);
+    return material_data(cell->material_id()).kind == MaterialData::Kind::solid;
   }
 
   template <int dim>
@@ -475,6 +689,31 @@ namespace Step57
   }
 
   template <int dim>
+  void StationaryNavierStokes<dim>::collect_boundary_extents()
+  {
+    boundary_extents.clear();
+
+    for (const auto &cell : triangulation.active_cell_iterators())
+      for (const auto face_no : cell->face_indices())
+        if (cell->face(face_no)->at_boundary())
+          {
+            auto &extent = boundary_extents[cell->face(face_no)->boundary_id()];
+
+            for (const auto vertex_no : cell->face(face_no)->vertex_indices())
+              {
+                const Point<dim> &vertex = cell->face(face_no)->vertex(vertex_no);
+                extent.initialized       = true;
+
+                for (unsigned int d = 0; d < dim; ++d)
+                  {
+                    extent.min[d] = std::min(extent.min[d], vertex[d]);
+                    extent.max[d] = std::max(extent.max[d], vertex[d]);
+                  }
+              }
+          }
+  }
+
+  template <int dim>
   void StationaryNavierStokes<dim>::setup_temperature_dofs()
   {
     temperature_matrix.clear();
@@ -484,14 +723,12 @@ namespace Step57
     temperature_constraints.clear();
     DoFTools::make_hanging_node_constraints(temperature_dof_handler,
                                             temperature_constraints);
-    VectorTools::interpolate_boundary_values(temperature_dof_handler,
-                                             30,
-                                             TemperatureBoundaryValues<dim>(1.0),
-                                             temperature_constraints);
-    VectorTools::interpolate_boundary_values(temperature_dof_handler,
-                                             40,
-                                             TemperatureBoundaryValues<dim>(0.0),
-                                             temperature_constraints);
+    for (const auto &boundary : config.temperature_dirichlet_boundaries)
+      VectorTools::interpolate_boundary_values(
+        temperature_dof_handler,
+        boundary.boundary_id,
+        TemperatureBoundaryValues<dim>(boundary.value),
+        temperature_constraints);
 
     temperature_constraints.close();
 
@@ -512,6 +749,7 @@ namespace Step57
   {
     system_matrix.clear();
     pressure_mass_matrix.clear();
+    collect_boundary_extents();
 
     set_active_fe_indices();
  
@@ -532,14 +770,36 @@ namespace Step57
  
       DoFTools::make_hanging_node_constraints(dof_handler, nonzero_constraints);
 
-      for (int id: {30, 40}) {
+      for (const auto &boundary : config.velocity_dirichlet_boundaries)
+        {
+          const auto extent_it = boundary_extents.find(boundary.boundary_id);
+          AssertThrow(extent_it != boundary_extents.end() &&
+                        extent_it->second.initialized,
+                      ExcMessage("Missing boundary extent for configured "
+                                 "velocity boundary."));
+
+          AssertIndexRange(boundary.component, dim);
+          AssertIndexRange(boundary.coordinate, dim);
+
+          const auto &extent = extent_it->second;
+
+          VectorTools::interpolate_boundary_values(
+            dof_handler,
+            boundary.boundary_id,
+            VelocityBoundaryValues<dim>(boundary,
+                                        extent.min[boundary.coordinate],
+                                        extent.max[boundary.coordinate]),
+            nonzero_constraints,
+            fe_collection.component_mask(velocities));
+        }
+
+      for (const auto id : config.no_slip_boundary_ids)
         VectorTools::interpolate_boundary_values(
           dof_handler,
           id,
-          VelocityBoundaryValues<dim>(inflows_params),
+          Functions::ZeroFunction<dim>(dim + 1),
           nonzero_constraints,
           fe_collection.component_mask(velocities));
-        }
 
       add_fluid_solid_interface_constraints(nonzero_constraints);
 
@@ -551,14 +811,21 @@ namespace Step57
  
       DoFTools::make_hanging_node_constraints(dof_handler, zero_constraints);
 
-      for (int id: {30, 40}) {
+      for (const auto &boundary : config.velocity_dirichlet_boundaries)
+        VectorTools::interpolate_boundary_values(
+          dof_handler,
+          boundary.boundary_id,
+          Functions::ZeroFunction<dim>(dim + 1),
+          zero_constraints,
+          fe_collection.component_mask(velocities));
+
+      for (const auto id : config.no_slip_boundary_ids)
         VectorTools::interpolate_boundary_values(
           dof_handler,
           id,
           Functions::ZeroFunction<dim>(dim + 1),
           zero_constraints,
           fe_collection.component_mask(velocities));
-      }
 
       add_fluid_solid_interface_constraints(zero_constraints);
 
@@ -762,17 +1029,6 @@ namespace Step57
   }
 
   template <int dim>
-  double StationaryNavierStokes<dim>::
-    solid_thermal_conductivity(dealii::types::material_id material_id)
-  {
-    if (material_id == 1)
-      return insulator_thermal_conductivity;
-    if(material_id == 2)
-      return conductor_thermal_conductivity;
-    throw std::runtime_error("unexpected material id in solid domain");
-  }
-
-  template <int dim>
   void StationaryNavierStokes<dim>::assemble_temperature_system()
   {
     temperature_matrix = 0;
@@ -817,8 +1073,7 @@ namespace Step57
 
         const bool   in_fluid_domain = cell_is_in_fluid_domain(flow_cell);
         const double thermal_conductivity =
-          in_fluid_domain ? fluid_thermal_conductivity :
-                            solid_thermal_conductivity(cell->material_id());
+          material_data(cell->material_id()).thermal_conductivity;
 
         if (in_fluid_domain)
           {
@@ -1149,7 +1404,8 @@ namespace Step57
   {
     GridIn<dim> grid_in;
     grid_in.attach_triangulation(triangulation);
-    std::ifstream input_file("../meshes/thermal_exchanger.msh");
+    std::ifstream input_file(config.mesh_file);
+    AssertThrow(input_file, ExcFileNotOpen(config.mesh_file));
     Assert(dim == 2, ExcNotImplemented());
 
     grid_in.read_msh(input_file);
@@ -1186,6 +1442,7 @@ int main(int argc, char **argv)
 
       std::string output_directory = ".";
       bool        save_mesh_output = false;
+      std::string case_file        = "../cases/heat_exchanger.prm";
 
       for (int i = 1; i < argc; ++i)
         {
@@ -1197,6 +1454,12 @@ int main(int argc, char **argv)
                           ExcMessage("Missing value for --output-dir."));
               output_directory = argv[++i];
             }
+          else if (argument == "--case")
+            {
+              AssertThrow(i + 1 < argc,
+                          ExcMessage("Missing value for --case."));
+              case_file = argv[++i];
+            }
           else if (argument == "--save-mesh")
             save_mesh_output = true;
           else
@@ -1205,10 +1468,12 @@ int main(int argc, char **argv)
                                    argument));
         }
  
-      StationaryNavierStokes<2> flow(/* degree = */ 1,
+      const CaseConfig case_config = read_case_config(case_file);
+
+      StationaryNavierStokes<2> flow(case_config,
                                      output_directory,
                                      save_mesh_output);
-      flow.run(4);
+      flow.run(case_config.adaptive_refinement_cycles);
     }
   catch (std::exception &exc)
     {

@@ -1,0 +1,30 @@
+subsection Mesh
+  set File = ../meshes/pipe.msh
+end
+
+subsection Solver
+  set Reynolds number = 7500
+  set Gamma = 1.0
+  set Polynomial degree = 1
+  set Adaptive refinement cycles = 4
+end
+
+subsection Materials
+  set Ids = 0, 1
+
+  subsection Material 0
+    set Kind = fluid
+    set Thermal conductivity = 1.0
+  end
+
+  subsection Material 1
+    set Kind = solid
+    set Thermal conductivity = 5.0
+  end
+end
+
+subsection Boundary conditions
+  set No-slip boundaries =
+  set Velocity Dirichlet = 60:parabolic:0:1:2.5
+  set Temperature Dirichlet = 10:0.0; 20:0.0; 30:0.0; 40:0.0; 60:1.0
+end
