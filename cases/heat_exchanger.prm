@@ -29,7 +29,6 @@ subsection Materials
 end
 
 subsection Boundary conditions
-  set No-slip boundaries = 10, 20
   set Velocity Dirichlet = 30:parabolic:0:1:2.5; 40:parabolic:0:1:-2.5
   set Temperature Dirichlet = 30:1.0; 40:0.0
 end
