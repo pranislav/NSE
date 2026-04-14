@@ -85,6 +85,32 @@ namespace Step57
     return std::filesystem::path(base_file).parent_path() / file_path;
   }
 
+  std::set<types::material_id>
+  discover_material_ids_from_case_file(const std::string &case_file)
+  {
+    std::ifstream input(case_file);
+    AssertThrow(input, ExcFileNotOpen(case_file));
+
+    std::set<types::material_id> material_ids;
+    const std::string            prefix = "subsection Material ";
+    std::string                  line;
+
+    while (std::getline(input, line))
+      {
+        const std::string trimmed = Utilities::trim(line);
+        if (trimmed.rfind(prefix, 0) != 0)
+          continue;
+
+        const std::string suffix = Utilities::trim(trimmed.substr(prefix.size()));
+        AssertThrow(!suffix.empty(),
+                    ExcMessage("Missing material id in subsection declaration."));
+
+        material_ids.insert(static_cast<types::material_id>(std::stoi(suffix)));
+      }
+
+    return material_ids;
+  }
+
   struct VelocityBoundaryCondition
   {
     enum class Type
@@ -236,6 +262,18 @@ namespace Step57
     prm.declare_entry("Temperature Dirichlet", "", Patterns::Anything());
     prm.leave_subsection();
 
+    const auto material_ids = discover_material_ids_from_case_file(case_file);
+
+    for (const auto material_id : material_ids)
+      {
+        prm.enter_subsection("Materials");
+        prm.enter_subsection("Material " + std::to_string(material_id));
+        prm.declare_entry("Kind", "solid", Patterns::Selection("fluid|solid"));
+        prm.declare_entry("Thermal conductivity", "1.0", Patterns::Double(0.0));
+        prm.leave_subsection();
+        prm.leave_subsection();
+      }
+
     prm.parse_input(case_file);
 
     CaseConfig config;
@@ -253,20 +291,12 @@ namespace Step57
     prm.leave_subsection();
 
     prm.enter_subsection("Materials");
-    const auto material_ids = parse_material_id_set(prm.get("Ids"));
+    const auto declared_material_ids = parse_material_id_set(prm.get("Ids"));
     prm.leave_subsection();
 
-    for (const auto material_id : material_ids)
-      {
-        prm.enter_subsection("Materials");
-        prm.enter_subsection("Material " + std::to_string(material_id));
-        prm.declare_entry("Kind", "solid", Patterns::Selection("fluid|solid"));
-        prm.declare_entry("Thermal conductivity", "1.0", Patterns::Double(0.0));
-        prm.leave_subsection();
-        prm.leave_subsection();
-      }
-
-    prm.parse_input(case_file);
+    AssertThrow(declared_material_ids == material_ids,
+                ExcMessage("Mismatch between 'Materials/Ids' and "
+                           "'subsection Material <id>' declarations."));
 
     for (const auto material_id : material_ids)
       {
