@@ -1,11 +1,25 @@
-- read step 31 (flow + temperature)
-- explain (flux continuity is enforced weakly by the standard diffusion bilinear form) - heat flux from context
-- (steady) advection - diffusion equations - how does the heat transfer work in moving fluid
-- ako chceme okrajove podmienky
+
 - nakreslit to analyticke riesenie
 - a porovnat s numerickym (nejak smart)
 - zohnat to analyticke riesenie
-- pridat vypisovacky aj na teplotu
 - skontrolovat assembly advection termu
-+ run with specified dir to save solutions
-- vypocet presnejsich rieseni sa exponencialne spomaluje - zla implementacia?
+
+TODO
+- solutions naming convention - no dec places for Re, get rid of "solution" encode the configurations (velocity, conductivities)
+- spravit howto na robenie .prm filov
+- pridat vypisovacky aj na teplotu
+- nakreslit rozne riesenia na porovnanie
+- otestovat pipu ci stale ide
+
+otazky
+- material_data? it?
+
+teoria
+- explain (flux continuity is enforced weakly by the standard diffusion bilinear form) - heat flux from context
+- (steady) advection - diffusion equations - how does the heat transfer work in moving fluid
+
+refactor
+- ConjugateHeatTransferSolver is a big class - does it make sense to spolit somehow?
+- assemble -> assemble_velocities or something
+- problemy s hierarchiou -> setup_temperature_dofs inside setup_dofs
+- split main, run to smaller functions (prints, loads)
