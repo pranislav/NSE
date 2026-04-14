@@ -90,8 +90,8 @@ Physical Curve(40) = {5}; // upper inlet
 
 // Materials
 Physical Surface(0) = {200, 400}; // fluid
-Physical Surface(1) = {100, 500, 300}; // walls
-// Physical Surface(2) = {300}; // membrane
+Physical Surface(1) = {100, 500}; // walls
+Physical Surface(2) = {300}; // membrane
 
 // ---------------- MESH ----------------
 Mesh.RecombineAll = 1;
