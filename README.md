@@ -1,6 +1,7 @@
 # NSE Conjugate Heat Transfer Example
 
-This repository contains a deal.II-based 2D flow and temperature solver built from `step57base.cc`.
+This repository contains a deal.II-based 2D flow and temperature solver.
+It was originally based on deal.II step-57.
 The current setup models incompressible flow in a channel with solid walls and a separate temperature solve over the full fluid-solid domain.
 
 ## Build
@@ -20,7 +21,7 @@ Run the executable from the `build/` directory and pass a case file:
 
 ```bash
 cd build
-./step57base --case ../cases/heat_exchanger.prm
+./cht_solver --case ../cases/heat_exchanger.prm
 ```
 
 ## Output Directory
@@ -32,7 +33,7 @@ Example:
 
 ```bash
 cd build
-./step57base --case ../cases/heat_exchanger.prm --output-dir ../results/run_01
+./cht_solver --case ../cases/heat_exchanger.prm --output-dir ../results/run_01
 ```
 
 If `--output-dir` is omitted, output files are written to the current working directory.

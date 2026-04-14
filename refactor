@@ -2,7 +2,6 @@
 - naming in general
 - assemble -> assemble_velocities or something
 - problemy s hierarchiou -> setup_temperature_dofs inside setup_dofs
-- vymazat, co uz je neaktualne (set_pipe_boundary_ids, localized_inlet, zakomentovane veci, )
 - split main, run to smaller functions (prints, loads)
 - Split this large file into case_config.*, boundary_conditions.*, and solver code so the next mesh-specific addition does not go back into one monolith.
 - solutions/dirs naming convention - no dec places for Re, get rid of "solution" somewhere encode the configurations (velocity, conductivities)

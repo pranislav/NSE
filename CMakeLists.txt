@@ -1,9 +1,9 @@
 ##
-#  CMake script for the step-57 tutorial program:
+#  CMake script for the conjugate heat transfer solver.
 ##
 
 # Set the name of the project and target:
-set(TARGET "step57base")
+set(TARGET "cht_solver")
 
 # Declare all source files the target consists of. Here, this is only
 # the one step-X.cc file, but as you expand your project you may wish
@@ -16,7 +16,9 @@ set(TARGET "step57base")
 # in the "CMake in user projects" page accessible from the "User info"
 # page of the documentation.
 set(TARGET_SRC
-  ${TARGET}.cc
+  src/cht_solver.cc
+  src/case_config.cc
+  src/conjugate_heat_transfer_solver.cc
   )
 
 # Usually, you will not need to modify anything beyond this point...
