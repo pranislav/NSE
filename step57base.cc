@@ -111,6 +111,23 @@ namespace Step57
     return material_ids;
   }
 
+  template <typename IdType>
+  std::string join_ids(const std::set<IdType> &ids)
+  {
+    std::ostringstream out;
+    bool               first = true;
+
+    for (const auto id : ids)
+      {
+        if (!first)
+          out << ", ";
+        out << static_cast<unsigned int>(id);
+        first = false;
+      }
+
+    return out.str();
+  }
+
   struct VelocityBoundaryCondition
   {
     enum class Type
@@ -365,6 +382,7 @@ namespace Step57
     void set_active_fe_indices();
     void add_fluid_solid_interface_constraints(
       AffineConstraints<double> &constraints) const;
+    void validate_case_against_mesh() const;
     void collect_boundary_extents();
     void setup_temperature_dofs();
     void assemble_temperature_system();
@@ -741,6 +759,47 @@ namespace Step57
                   }
               }
           }
+  }
+
+  template <int dim>
+  void StationaryNavierStokes<dim>::validate_case_against_mesh() const
+  {
+    std::set<types::material_id> mesh_material_ids;
+    std::set<types::material_id> case_material_ids;
+    std::set<types::material_id> missing_in_case;
+    std::set<types::material_id> unused_in_case;
+
+    for (const auto &entry : config.materials)
+      case_material_ids.insert(entry.first);
+
+    for (const auto &cell : triangulation.active_cell_iterators())
+      mesh_material_ids.insert(cell->material_id());
+
+    std::set_difference(mesh_material_ids.begin(),
+                        mesh_material_ids.end(),
+                        case_material_ids.begin(),
+                        case_material_ids.end(),
+                        std::inserter(missing_in_case, missing_in_case.end()));
+
+    std::set_difference(case_material_ids.begin(),
+                        case_material_ids.end(),
+                        mesh_material_ids.begin(),
+                        mesh_material_ids.end(),
+                        std::inserter(unused_in_case, unused_in_case.end()));
+
+    AssertThrow(
+      missing_in_case.empty(),
+      ExcMessage("Mesh uses material ids {" + join_ids(mesh_material_ids) +
+                 "}, but case file defines {" + join_ids(case_material_ids) +
+                 "}. Missing material definitions for: {" +
+                 join_ids(missing_in_case) + "}."));
+
+    AssertThrow(
+      unused_in_case.empty(),
+      ExcMessage("Case file defines material ids {" +
+                 join_ids(case_material_ids) + "}, but mesh uses {" +
+                 join_ids(mesh_material_ids) + "}. Unused material definitions: {" +
+                 join_ids(unused_in_case) + "}."));
   }
 
   template <int dim>
@@ -1439,6 +1498,7 @@ namespace Step57
     Assert(dim == 2, ExcNotImplemented());
 
     grid_in.read_msh(input_file);
+    validate_case_against_mesh();
 
     // GridGenerator::hyper_cube(triangulation);
     // triangulation.refine_global(5);
