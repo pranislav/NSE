@@ -515,54 +515,6 @@ namespace Step57
     const double temperature;
   };
 
-  template <int dim>
-  class LocalizedInletTemperatureBoundaryValues : public Function<dim>
-  {
-  public:
-    LocalizedInletTemperatureBoundaryValues()
-      : Function<dim>(1)
-    {}
-
-    virtual double value(const Point<dim>  &p,
-                         const unsigned int component) const override
-    {
-      AssertIndexRange(component, 1);
-
-      const double center = 1.5;
-      const double half_width = 0.15;
-      const double distance = std::abs(p[1] - center);
-
-      if (distance >= half_width)
-        return 0.0;
-
-      const double phase = numbers::PI * distance / half_width;
-      return 0.5 * (1.0 + std::cos(phase));
-    }
-  };
- 
-  // {
-  //   Assert(component < this->n_components,
-  //          ExcIndexRange(component, 0, this->n_components));
-  //   if (component == 0) // x-velocity
-  //   {
-  //     if (std::abs(p[0]) < 1e-12) // inlet
-  //     {
-  //       const double y = p[1];
-  //       return y * (1.0 - y); // Poiseuille profile
-  //     }
-  //   }
-
-  //   return 0.0;
-  // }
-  // {
-  //   Assert(component < this->n_components,
-  //          ExcIndexRange(component, 0, this->n_components));
-  //   if (component == 0 && std::abs(p[dim - 1] - 1.0) < 1e-10)
-  //     return 1.0;
-
-  //   return 0;
-  // }
- 
   template <class PreconditionerMp>
   class BlockSchurPreconditioner : public EnableObserverPointer
   {
@@ -1471,24 +1423,6 @@ namespace Step57
   }
 
   template <int dim>
-  void set_pipe_boundary_ids(Triangulation<dim> &triangulation)
-  {
-    for (auto &cell : triangulation.active_cell_iterators())
-      for (auto f : cell->face_iterators())
-        if (f->at_boundary())
-        {
-          const auto center = f->center();
-
-          if (std::abs(center[0]) < 1e-12)
-            f->set_boundary_id(40); // inlet
-          else if (std::abs(center[0] - 1.0) < 1e-12)
-            f->set_boundary_id(20); // outlet
-          else
-            f->set_boundary_id(10); // walls
-        }
-  }
-
-  template <int dim>
   void StationaryNavierStokes<dim>::run(const unsigned int refinement)
   {
     GridIn<dim> grid_in;
@@ -1499,10 +1433,6 @@ namespace Step57
 
     grid_in.read_msh(input_file);
     validate_case_against_mesh();
-
-    // GridGenerator::hyper_cube(triangulation);
-    // triangulation.refine_global(5);
-    // set_pipe_boundary_ids(triangulation);
   
     const double Re = 1.0 / viscosity;
  
