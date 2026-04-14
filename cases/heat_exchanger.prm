@@ -1,5 +1,5 @@
 subsection Mesh
-  set File = ../meshes/thermal_exchanger.msh
+  set File = ../meshes/heat_exchanger.msh
 end
 
 subsection Solver
