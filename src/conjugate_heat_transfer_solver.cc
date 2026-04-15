@@ -327,6 +327,13 @@ namespace Cht
   template <int dim>
   void ConjugateHeatTransferSolver<dim>::setup_dofs()
   {
+    setup_flow_dofs();
+    setup_temperature_dofs();
+  }
+
+  template <int dim>
+  void ConjugateHeatTransferSolver<dim>::setup_flow_dofs()
+  {
     system_matrix.clear();
     pressure_mass_matrix.clear();
     collect_boundary_extents();
@@ -414,8 +421,6 @@ namespace Cht
               << std::endl
               << "Number of degrees of freedom: " << dof_handler.n_dofs()
               << " (" << dof_u << " + " << dof_p << ')' << std::endl;
-
-    setup_temperature_dofs();
   }
 
   template <int dim>

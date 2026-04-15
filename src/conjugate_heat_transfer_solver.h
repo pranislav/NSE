@@ -54,10 +54,11 @@ namespace Cht
     void validate_case_against_mesh() const;
     void collect_boundary_extents();
     void setup_temperature_dofs();
+    void setup_flow_dofs();
+    void setup_dofs();
     void assemble_temperature_system();
     void solve_temperature();
     void update_temperature_field();
-    void setup_dofs();
     void initialize_system();
     void assemble_nse(const bool initial_step, const bool assemble_matrix);
     void assemble_system(const bool initial_step);
