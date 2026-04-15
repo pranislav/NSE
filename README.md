@@ -56,3 +56,47 @@ Current examples:
 
 - [`cases/heat_exchanger.prm`](/home/branislav/Vysoka/phd?/deal/NSE/cases/heat_exchanger.prm)
 - [`cases/pipe.prm`](/home/branislav/Vysoka/phd?/deal/NSE/cases/pipe.prm)
+
+## Case File Format
+
+Case files use deal.II parameter syntax and must define:
+
+```prm
+subsection Mesh
+  set File = ../meshes/<mesh_name>.msh
+end
+
+subsection Solver
+  set Reynolds number = <reynolds_number>
+  set Gamma = <gamma>
+  set Polynomial degree = <degree>
+  set Adaptive refinement cycles = <adaptive_refinement_cycles>
+end
+
+subsection Materials
+  set Ids = <comma_separated_material_ids>
+
+  subsection Material <id>
+    set Kind = <fluid|solid>
+    set Thermal conductivity = <thermal_conductivity>
+  end
+end
+
+subsection Boundary conditions
+  set No-slip boundaries = <comma_separated_boundary_ids>
+  set Velocity Dirichlet = <boundary_id:type:component:coordinate:value; ...>
+  set Temperature Dirichlet = <boundary_id:value; ...>
+end
+```
+
+Velocity boundary types:
+
+- `constant`
+- `parabolic`
+
+Velocity entry format:
+
+- `boundary_id:type:component:coordinate:value`
+- `component`: `0` for `u_x`, `1` for `u_y`
+- `coordinate`: axis used by the profile, `0` for `x`, `1` for `y`
+- `value`: imposed constant value or parabola peak value
