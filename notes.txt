@@ -20,6 +20,7 @@ teoria
 
 refactor
 - ConjugateHeatTransferSolver is a big class - does it make sense to spolit somehow?
-- assemble -> assemble_velocities or something
 - problemy s hierarchiou -> setup_temperature_dofs inside setup_dofs
 - split main, run to smaller functions (prints, loads)
+
+fem-bookmark 2.2.6

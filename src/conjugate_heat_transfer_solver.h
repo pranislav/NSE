@@ -59,7 +59,7 @@ namespace Cht
     void update_temperature_field();
     void setup_dofs();
     void initialize_system();
-    void assemble(const bool initial_step, const bool assemble_matrix);
+    void assemble_nse(const bool initial_step, const bool assemble_matrix);
     void assemble_system(const bool initial_step);
     void assemble_rhs(const bool initial_step);
     void solve(const bool initial_step);

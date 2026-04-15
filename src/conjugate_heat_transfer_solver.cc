@@ -435,7 +435,7 @@ namespace Cht
   }
 
   template <int dim>
-  void ConjugateHeatTransferSolver<dim>::assemble(const bool initial_step,
+  void ConjugateHeatTransferSolver<dim>::assemble_nse(const bool initial_step,
                                                   const bool assemble_matrix)
   {
     if (assemble_matrix)
@@ -557,13 +557,13 @@ namespace Cht
   template <int dim>
   void ConjugateHeatTransferSolver<dim>::assemble_system(const bool initial_step)
   {
-    assemble(initial_step, true);
+    assemble_nse(initial_step, true);
   }
 
   template <int dim>
   void ConjugateHeatTransferSolver<dim>::assemble_rhs(const bool initial_step)
   {
-    assemble(initial_step, false);
+    assemble_nse(initial_step, false);
   }
 
   template <int dim>
