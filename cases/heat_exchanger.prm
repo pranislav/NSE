@@ -6,7 +6,7 @@ subsection Solver
   set Reynolds number = 7500
   set Gamma = 1.0
   set Polynomial degree = 1
-  set Adaptive refinement cycles = 4
+  set Adaptive refinement cycles = 2
 end
 
 subsection Materials
@@ -29,6 +29,6 @@ subsection Materials
 end
 
 subsection Boundary conditions
-  set Velocity Dirichlet = 30:parabolic:0:1:2.5; 40:parabolic:0:1:-2.5
+  set Velocity Dirichlet = 30:parabolic:0:1:5; 40:parabolic:0:1:-5
   set Temperature Dirichlet = 30:1.0; 40:0.0
 end
