@@ -189,8 +189,17 @@ namespace Cht
     for (const auto &boundary : config.velocity_dirichlet_boundaries)
       velocity_parts.push_back(format_compact_double(boundary.value));
 
+    std::vector<std::string> temperature_parts;
+    for (const auto &boundary : config.temperature_dirichlet_boundaries)
+      temperature_parts.push_back(std::to_string(boundary.boundary_id) + "_" +
+                                  format_compact_double(boundary.value));
+
+    const std::string temperature_tag =
+      temperature_parts.empty() ? "none" : join_with_underscore(temperature_parts);
+
     return "k_" + join_with_underscore(conductivity_parts) + "-v_" +
-           join_with_underscore(velocity_parts);
+           join_with_underscore(velocity_parts) + "-Re_" +
+           format_compact_double(config.reynolds) + "-T_" + temperature_tag;
   }
 
   template <int dim>
@@ -966,7 +975,7 @@ namespace Cht
     GridOut        grid_out;
     const std::string mesh_stem =
       std::filesystem::path(config.mesh_file).stem().string();
-    std::ofstream output(output_directory + "/" + mesh_stem + "_ref" +
+    std::ofstream output(output_directory + "/mesh_" + mesh_stem + "_ref" +
                          std::to_string(refinement_cycle) + ".vtu");
     grid_out.write_vtu(triangulation, output);
   }
