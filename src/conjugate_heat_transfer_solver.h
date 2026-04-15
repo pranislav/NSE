@@ -66,14 +66,18 @@ namespace Cht
     void solve(const bool initial_step);
     void refine_mesh();
     void process_solution(unsigned int refinement);
-    void output_results(const unsigned int refinement_cycle) const;
-    void output_mesh(const unsigned int output_index) const;
+    void output_results(const unsigned int refinement_cycle,
+                        const unsigned int newton_step) const;
+    void output_mesh(const unsigned int refinement_cycle,
+                     const unsigned int newton_step) const;
     void newton_iteration(const double       tolerance,
                           const unsigned int max_n_line_searches,
                           const unsigned int max_n_refinements,
                           const bool         is_initial_step,
                           const bool         output_result);
     void compute_initial_guess(double step_size);
+    std::string case_tag() const;
+    static std::string format_compact_double(double value);
 
     const CaseConfig                     config;
     double                               viscosity;

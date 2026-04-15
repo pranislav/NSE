@@ -29,6 +29,7 @@
 #include <deal.II/numerics/vector_tools.h>
 
 #include <algorithm>
+#include <cmath>
 #include <filesystem>
 #include <fstream>
 #include <iomanip>
@@ -44,6 +45,18 @@ namespace Cht
 
   namespace
   {
+    std::string join_with_underscore(const std::vector<std::string> &parts)
+    {
+      std::ostringstream out;
+      for (std::size_t i = 0; i < parts.size(); ++i)
+        {
+          if (i > 0)
+            out << "_";
+          out << parts[i];
+        }
+      return out.str();
+    }
+
     template <typename IdType>
     std::string join_ids(const std::set<IdType> &ids)
     {
@@ -143,6 +156,41 @@ namespace Cht
   {
     fe_collection.push_back(fe_fluid);
     fe_collection.push_back(fe_solid);
+  }
+
+  template <int dim>
+  std::string ConjugateHeatTransferSolver<dim>::format_compact_double(
+    const double value)
+  {
+    std::ostringstream out;
+    out << std::fixed << std::setprecision(6) << value;
+    std::string text = out.str();
+    while (!text.empty() && text.back() == '0')
+      text.pop_back();
+    if (!text.empty() && text.back() == '.')
+      text.pop_back();
+    if (text.empty())
+      text = "0";
+    return text;
+  }
+
+  template <int dim>
+  std::string ConjugateHeatTransferSolver<dim>::case_tag() const
+  {
+    std::vector<std::string> conductivity_parts;
+    for (const auto &[material_id, material] : config.materials)
+      {
+        (void)material_id;
+        conductivity_parts.push_back(
+          format_compact_double(material.thermal_conductivity));
+      }
+
+    std::vector<std::string> velocity_parts;
+    for (const auto &boundary : config.velocity_dirichlet_boundaries)
+      velocity_parts.push_back(format_compact_double(boundary.value));
+
+    return "k_" + join_with_underscore(conductivity_parts) + "-v_" +
+           join_with_underscore(velocity_parts);
   }
 
   template <int dim>
@@ -842,8 +890,7 @@ namespace Cht
             if (output_result)
               {
                 update_temperature_field();
-                output_results(max_n_line_searches * refinement_n +
-                               line_search_n);
+                output_results(refinement_n, line_search_n);
 
                 if (current_res <= tolerance)
                   process_solution(refinement_n);
@@ -874,7 +921,8 @@ namespace Cht
 
   template <int dim>
   void ConjugateHeatTransferSolver<dim>::output_results(
-    const unsigned int output_index) const
+    const unsigned int refinement_cycle,
+    const unsigned int newton_step) const
   {
     std::filesystem::create_directories(output_directory);
 
@@ -900,23 +948,24 @@ namespace Cht
                                "temperature");
     data_out.build_patches();
 
-    std::ofstream output(output_directory + "/" +
-                         std::to_string(1.0 / viscosity) + "-solution-" +
-                         Utilities::int_to_string(output_index, 4) + ".vtk");
+    std::ofstream output(output_directory + "/" + case_tag() + "_ref" +
+                         std::to_string(refinement_cycle) + "_newt" +
+                         std::to_string(newton_step) + ".vtk");
     data_out.write_vtk(output);
 
     if (save_mesh_output)
-      output_mesh(output_index);
+      output_mesh(refinement_cycle, newton_step);
   }
 
   template <int dim>
   void ConjugateHeatTransferSolver<dim>::output_mesh(
-    const unsigned int output_index) const
+    const unsigned int refinement_cycle,
+    const unsigned int newton_step) const
   {
     GridOut        grid_out;
-    std::ofstream  output(output_directory + "/" +
-                         std::to_string(1.0 / viscosity) + "-mesh-" +
-                         Utilities::int_to_string(output_index, 4) + ".vtu");
+    std::ofstream  output(output_directory + "/" + case_tag() + "_ref" +
+                         std::to_string(refinement_cycle) + "_newt" +
+                         std::to_string(newton_step) + ".vtu");
     grid_out.write_vtu(triangulation, output);
   }
 
@@ -925,8 +974,8 @@ namespace Cht
   {
     std::filesystem::create_directories(output_directory);
 
-    std::ofstream f(output_directory + "/" + std::to_string(1.0 / viscosity) +
-                    "-line-" + std::to_string(refinement) + ".txt");
+    std::ofstream f(output_directory + "/" + case_tag() + "_ref" +
+                    std::to_string(refinement) + "-line.txt");
     f << "# y u_x u_y" << std::endl;
 
     Point<dim> p;
