@@ -16,6 +16,15 @@ int main(int argc, char **argv)
       bool        save_mesh_output = false;
       std::string case_file        = "../cases/heat_exchanger.prm";
 
+      const auto print_help = [&]() {
+        std::cout << "Usage: cht_solver [--case FILE] [--output-dir DIR] "
+                     "[--save-mesh] [--help]\n"
+                  << "  --case FILE        Case file to read\n"
+                  << "  --output-dir DIR   Output directory (default: .)\n"
+                  << "  --save-mesh        Save mesh after each refinement\n"
+                  << "  --help             Show this message\n";
+      };
+
       for (int i = 1; i < argc; ++i)
         {
           const std::string argument = argv[i];
@@ -34,6 +43,11 @@ int main(int argc, char **argv)
             }
           else if (argument == "--save-mesh")
             save_mesh_output = true;
+          else if (argument == "--help")
+            {
+              print_help();
+              return 0;
+            }
           else
             AssertThrow(false,
                         dealii::ExcMessage("Unknown command line argument: " +

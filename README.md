@@ -24,6 +24,8 @@ cd build
 ./cht_solver --case ../cases/heat_exchanger.prm
 ```
 
+Use `--help` to print the available command-line options.
+
 ## Output Directory
 
 You can choose where result files are written with `--output-dir <path>`.
@@ -37,6 +39,9 @@ cd build
 ```
 
 If `--output-dir` is omitted, output files are written to the current working directory.
+Mesh outputs saved with `--save-mesh` are written after each refinement and are
+named from the input mesh stem plus the refinement count, for example
+`heat_exchanger_ref2.vtu`.
 
 ## Case Files
 

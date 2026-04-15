@@ -756,7 +756,8 @@ namespace Cht
   }
 
   template <int dim>
-  void ConjugateHeatTransferSolver<dim>::refine_mesh()
+    void ConjugateHeatTransferSolver<dim>::refine_mesh(
+      const unsigned int refinement_cycle)
   {
     Vector<float> flow_error_per_cell(triangulation.n_active_cells());
     Vector<float> temperature_error_per_cell(triangulation.n_active_cells());
@@ -819,6 +820,9 @@ namespace Cht
 
     initialize_system();
     present_solution = tmp;
+
+    if (save_mesh_output)
+      output_mesh(refinement_cycle);
   }
 
   template <int dim>
@@ -898,7 +902,7 @@ namespace Cht
           }
 
         if (refinement_n < max_n_refinements)
-          refine_mesh();
+          refine_mesh(refinement_n + 1);
       }
   }
 
@@ -953,19 +957,17 @@ namespace Cht
                          std::to_string(newton_step) + ".vtk");
     data_out.write_vtk(output);
 
-    if (save_mesh_output)
-      output_mesh(refinement_cycle, newton_step);
   }
 
   template <int dim>
   void ConjugateHeatTransferSolver<dim>::output_mesh(
-    const unsigned int refinement_cycle,
-    const unsigned int newton_step) const
+    const unsigned int refinement_cycle) const
   {
     GridOut        grid_out;
-    std::ofstream  output(output_directory + "/" + case_tag() + "_ref" +
-                         std::to_string(refinement_cycle) + "_newt" +
-                         std::to_string(newton_step) + ".vtu");
+    const std::string mesh_stem =
+      std::filesystem::path(config.mesh_file).stem().string();
+    std::ofstream output(output_directory + "/" + mesh_stem + "_ref" +
+                         std::to_string(refinement_cycle) + ".vtu");
     grid_out.write_vtu(triangulation, output);
   }
 

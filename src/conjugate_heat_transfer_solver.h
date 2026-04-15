@@ -64,12 +64,11 @@ namespace Cht
     void assemble_system(const bool initial_step);
     void assemble_rhs(const bool initial_step);
     void solve(const bool initial_step);
-    void refine_mesh();
+    void refine_mesh(unsigned int refinement_cycle);
     void process_solution(unsigned int refinement);
     void output_results(const unsigned int refinement_cycle,
                         const unsigned int newton_step) const;
-    void output_mesh(const unsigned int refinement_cycle,
-                     const unsigned int newton_step) const;
+    void output_mesh(const unsigned int refinement_cycle) const;
     void newton_iteration(const double       tolerance,
                           const unsigned int max_n_line_searches,
                           const unsigned int max_n_refinements,
