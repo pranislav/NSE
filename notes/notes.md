@@ -5,14 +5,14 @@
 - skontrolovat assembly advection termu
 
 TODO
-- solutions naming convention - no dec places for Re, get rid of "solution" encode the configurations (velocity, conductivities)
-- spravit howto na robenie .prm filov
+- solutions naming convention
 - pridat vypisovacky aj na teplotu
 - nakreslit rozne riesenia na porovnanie
-- otestovat pipu ci stale ide
+- spomenut explicitne v readme ake rovnice to riesi
 
 otazky
 - material_data? it?
+- preco local_rhs sa pocita pri assemble_system i assemble_rhs? a preco je tak zlozite?
 
 teoria
 - explain (flux continuity is enforced weakly by the standard diffusion bilinear form) - heat flux from context
@@ -21,5 +21,9 @@ teoria
 refactor
 - ConjugateHeatTransferSolver is a big class - does it make sense to spolit somehow?
 - split main, run to smaller functions (prints, loads)
+
+benchmarking
+- manufactured solutions
+- rozsirit funkcionalitu, aby sa to dalo (source term)
 
 fem-bookmark 2.2.6

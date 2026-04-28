@@ -1,0 +1,11 @@
+- case files: pipe, heat_exchanger
+- heat exchanger mesh
+- some refactoring, generalizing
+    - split to multiple files - solver, bc, case parser
+    - updated names (nse -> cht, smaller functions also)
+    - generalize & automatize boundary condition treating, no hardcoding into source code
+- solutions
+    - weird thing near inflows - not really
+- s cim to budeme benchmarkovat? analyticke riesenie Burdove ma navyse zdroj tepla skrz trenie v kvapaline
+    - https://chatgpt.com/share/69ce3475-99c4-832f-9847-e3103e18837d
+- reading - from beginning, not pragmatic targeting
