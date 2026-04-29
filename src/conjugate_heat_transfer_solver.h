@@ -26,9 +26,16 @@ namespace Cht
   class ConjugateHeatTransferSolver
   {
   public:
+    enum RefinementMode
+    {
+      global_refinement,
+      adaptive_refinement
+    };
+
     ConjugateHeatTransferSolver(const CaseConfig  &config,
                                 const std::string &output_directory = ".",
-                                const bool         save_mesh_output = false);
+                                const bool         save_mesh_output = false,
+                                const RefinementMode refinement_mode = adaptive_refinement);
 
     void run(const unsigned int refinement);
 
@@ -79,6 +86,7 @@ namespace Cht
     static std::string format_compact_double(double value);
 
     const CaseConfig                     config;
+    const RefinementMode                 refinement_mode;
     double                               viscosity;
     double                               gamma;
     const unsigned int                   degree;

@@ -140,8 +140,10 @@ namespace Cht
   ConjugateHeatTransferSolver<dim>::ConjugateHeatTransferSolver(
     const CaseConfig  &config,
     const std::string &output_directory,
-    const bool         save_mesh_output)
+    const bool         save_mesh_output,
+    const RefinementMode refinement_mode)
     : config(config)
+    , refinement_mode(refinement_mode)
     , viscosity(1.0 / config.reynolds)
     , gamma(config.gamma)
     , degree(config.degree)
