@@ -33,9 +33,9 @@ namespace Cht
     };
 
     ConjugateHeatTransferSolver(const CaseConfig  &config,
-                                const std::string &output_directory = ".",
-                                const bool         save_mesh_output = false,
-                                const RefinementMode refinement_mode = adaptive_refinement);
+                                const std::string &output_directory,
+                                const bool         save_mesh_output,
+                                const RefinementMode refinement_mode);
 
     void run(const unsigned int refinement);
 
