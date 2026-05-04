@@ -15,7 +15,7 @@ sys.path.append(str(Path(__file__).resolve().parent))
 
 import sympy as sp
 
-from expressions_mms import boundary_values, build_expressions
+from expressions_mms import ExprSet, boundary_values, build_expressions
 
 
 def cxx(expr: sp.Expr) -> str:
