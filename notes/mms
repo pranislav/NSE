@@ -17,3 +17,4 @@ PLAN:
 - BC na zaklade presneho riesenia (ako to treatuju v step-7?)
 - pocitanie erroru, ukladanie vysledkov (tiez nastudovat zo step-7)
 - vyhodnotit a vyplotit convergence rates
+- automatizacia? pridat manufactured solution do case-filu, sympy script zavisly na case-filu

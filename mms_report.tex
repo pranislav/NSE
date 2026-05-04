@@ -1,0 +1,42 @@
+\section*{Manufactured solution}
+This report defines a steady MMS pair on $\Omega=[0,1]\times[0,1]$.
+
+\subsection*{Exact fields}
+\[u_x(x,y) = \sin{\left(\pi x \right)} \cos{\left(\pi y \right)}\]
+\[u_y(x,y) = - \sin{\left(\pi y \right)} \cos{\left(\pi x \right)}\]
+\[p(x,y) = \sin{\left(\pi y \right)} \cos{\left(\pi x \right)}\]
+\[T(x,y) = \sin{\left(\pi y \right)} \cos{\left(2 \pi x \right)}\]
+
+\subsection*{Governing equations}
+For momentum we assume the steady incompressible Navier--Stokes residual
+$ (u \cdot \nabla)u - \nu \Delta u + \nabla p - f = 0$, with $\nabla \cdot u = 0$.
+For temperature we assume steady advection--diffusion
+$u \cdot \nabla T - \kappa \Delta T - s = 0$.
+
+\subsection*{Source terms}
+\[f_x(x,y) = \pi \left(2 \pi \nu \cos{\left(\pi y \right)} - \sin{\left(\pi y \right)} + \cos{\left(\pi x \right)}\right) \sin{\left(\pi x \right)}\]
+\[f_y(x,y) = \frac{\pi \left(2 \pi \nu \sin{\left(\pi \left(x - y\right) \right)} - 2 \pi \nu \sin{\left(\pi \left(x + y\right) \right)} + \sin{\left(2 \pi y \right)} + \cos{\left(\pi \left(x - y\right) \right)} + \cos{\left(\pi \left(x + y\right) \right)}\right)}{2}\]
+\[\nabla \cdot u = 0\]
+\[s(x,y) = \frac{\pi \left(- 20 \pi \kappa \sin^{2}{\left(\pi x \right)} + 10 \pi \kappa - 3 \cos{\left(\pi x \right)} \cos{\left(\pi y \right)} + \cos{\left(3 \pi x \right)} \cos{\left(\pi y \right)}\right) \sin{\left(\pi y \right)}}{2}\]
+
+\subsection*{Boundary values on $\partial\Omega$}
+\paragraph*{$u_x$}
+\[x = 0: 0\]
+\[x = 1: 0\]
+\[y = 0: \sin{\left(\pi x \right)}\]
+\[y = 1: - \sin{\left(\pi x \right)}\]
+\paragraph*{$u_y$}
+\[x = 0: - \sin{\left(\pi y \right)}\]
+\[x = 1: \sin{\left(\pi y \right)}\]
+\[y = 0: 0\]
+\[y = 1: 0\]
+\paragraph*{$p$}
+\[x = 0: \sin{\left(\pi y \right)}\]
+\[x = 1: - \sin{\left(\pi y \right)}\]
+\[y = 0: 0\]
+\[y = 1: 0\]
+\paragraph*{$T$}
+\[x = 0: \sin{\left(\pi y \right)}\]
+\[x = 1: \sin{\left(\pi y \right)}\]
+\[y = 0: 0\]
+\[y = 1: 0\]
