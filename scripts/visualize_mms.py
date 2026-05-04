@@ -1,54 +1,33 @@
 #!/usr/bin/env python3
 """
-Visualize the manufactured solution and its source terms on [0, 1] x [0, 1].
-
-Produces a 2x3 figure:
-  - velocity vector field
-  - pressure
-  - temperature
-  - momentum RHS x-component
-  - momentum RHS y-component
-  - temperature RHS
+Visualize the MMS fields and source terms on [0, 1] x [0, 1].
 """
 
 from __future__ import annotations
 
 import argparse
 from pathlib import Path
+import sys
+
+sys.path.append(str(Path(__file__).resolve().parent))
 
 import matplotlib.pyplot as plt
 import numpy as np
 import sympy as sp
 
+from expressions_mms import build_expressions
+
 
 def build_functions():
-    x, y, nu, kappa = sp.symbols("x y nu kappa", real=True)
-    pi = sp.pi
-
-    u_x = sp.sin(pi * x) * sp.cos(pi * y)
-    u_y = -sp.cos(pi * x) * sp.sin(pi * y)
-    p = sp.cos(pi * x) * sp.sin(pi * y)
-    T = sp.cos(2 * pi * x) * sp.sin(pi * y)
-
-    grad_ux = (sp.diff(u_x, x), sp.diff(u_x, y))
-    grad_uy = (sp.diff(u_y, x), sp.diff(u_y, y))
-    lap_ux = sp.diff(u_x, x, 2) + sp.diff(u_x, y, 2)
-    lap_uy = sp.diff(u_y, x, 2) + sp.diff(u_y, y, 2)
-    momentum_rhs_x = sp.simplify(u_x * grad_ux[0] + u_y * grad_ux[1] - nu * lap_ux + sp.diff(p, x))
-    momentum_rhs_y = sp.simplify(u_x * grad_uy[0] + u_y * grad_uy[1] - nu * lap_uy + sp.diff(p, y))
-
-    grad_T = (sp.diff(T, x), sp.diff(T, y))
-    lap_T = sp.diff(T, x, 2) + sp.diff(T, y, 2)
-    temperature_rhs = sp.simplify(u_x * grad_T[0] + u_y * grad_T[1] - kappa * lap_T)
-
+    exprs, (x, y, nu, kappa) = build_expressions()
     funcs = {
-        "u_x": sp.lambdify((x, y), u_x, "numpy"),
-        "u_y": sp.lambdify((x, y), u_y, "numpy"),
-        "p": sp.lambdify((x, y), p, "numpy"),
-        "T": sp.lambdify((x, y), T, "numpy"),
-        "fx": sp.lambdify((x, y, nu), momentum_rhs_x, "numpy"),
-        "fy": sp.lambdify((x, y, nu), momentum_rhs_y, "numpy"),
-        "s": sp.lambdify((x, y, kappa), temperature_rhs, "numpy"),
+        "u_x": sp.lambdify((x, y), exprs.u[0], "numpy"),
+        "u_y": sp.lambdify((x, y), exprs.u[1], "numpy"),
+        "p": sp.lambdify((x, y), exprs.p, "numpy"),
+        "T": sp.lambdify((x, y), exprs.T, "numpy"),
+        "fx": sp.lambdify((x, y, nu), exprs.momentum_rhs[0], "numpy"),
+        "fy": sp.lambdify((x, y, nu), exprs.momentum_rhs[1], "numpy"),
+        "s": sp.lambdify((x, y, kappa), exprs.temperature_rhs, "numpy"),
     }
     return funcs
 
