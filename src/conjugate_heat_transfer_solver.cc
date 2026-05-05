@@ -619,19 +619,19 @@ namespace Cht
   }
 
   template <int dim>
-  void ConjugateHeatTransferSolver<dim>::assemble_system(const bool initial_step)
+  void ConjugateHeatTransferSolver<dim>::assemble_flow_system(const bool initial_step)
   {
     assemble_nse(initial_step, true);
   }
 
   template <int dim>
-  void ConjugateHeatTransferSolver<dim>::assemble_rhs(const bool initial_step)
+  void ConjugateHeatTransferSolver<dim>::assemble_flow_rhs(const bool initial_step)
   {
     assemble_nse(initial_step, false);
   }
 
   template <int dim>
-  void ConjugateHeatTransferSolver<dim>::solve(const bool initial_step)
+  void ConjugateHeatTransferSolver<dim>::solve_flow(const bool initial_step)
   {
     const AffineConstraints<double> &constraints_used =
       initial_step ? nonzero_constraints : zero_constraints;
@@ -863,13 +863,13 @@ namespace Cht
                 setup_dofs();
                 initialize_system();
                 evaluation_point = present_solution;
-                assemble_system(first_step);
-                solve(first_step);
+                assemble_flow_system(first_step);
+                solve_flow(first_step);
                 present_solution = newton_update;
                 nonzero_constraints.distribute(present_solution);
                 first_step       = false;
                 evaluation_point = present_solution;
-                assemble_rhs(first_step);
+                assemble_flow_rhs(first_step);
                 current_res = system_rhs.l2_norm();
                 std::cout << "The residual of initial guess is " << current_res
                           << std::endl;
@@ -878,15 +878,15 @@ namespace Cht
             else
               {
                 evaluation_point = present_solution;
-                assemble_system(first_step);
-                solve(first_step);
+                assemble_flow_system(first_step);
+                solve_flow(first_step);
 
                 for (double alpha = 1.0; alpha > 1e-5; alpha *= 0.5)
                   {
                     evaluation_point = present_solution;
                     evaluation_point.add(alpha, newton_update);
                     nonzero_constraints.distribute(evaluation_point);
-                    assemble_rhs(first_step);
+                    assemble_flow_rhs(first_step);
                     current_res = system_rhs.l2_norm();
                     std::cout << "  alpha: " << std::setw(10) << alpha
                               << std::setw(0)

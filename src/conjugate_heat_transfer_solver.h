@@ -68,9 +68,9 @@ namespace Cht
     void update_temperature_field();
     void initialize_system();
     void assemble_nse(const bool initial_step, const bool assemble_matrix);
-    void assemble_system(const bool initial_step);
-    void assemble_rhs(const bool initial_step);
-    void solve(const bool initial_step);
+    void assemble_flow_system(const bool initial_step);
+    void assemble_flow_rhs(const bool initial_step);
+    void solve_flow(const bool initial_step);
     void refine_mesh(unsigned int refinement_cycle);
     void process_solution(unsigned int refinement);
     void output_results(const unsigned int refinement_cycle,
