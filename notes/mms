@@ -7,6 +7,8 @@ method of manufactured solutions
 - najskor stvorcovy mesh len s kvapalinou
 - najskor len nse ceknut, potom pridat teplotu
 
+- implementovat componnent ako enum, cize u_x, u_y, p namiesto 0, 1, 2
+- brat boundary conditions from mms ak je mms, nie z case filu. prip. case file pre mms, ktory urci, ze mms sa beru odjinud
 
 PLAN:
 - pozriet sa, ako to riesia v step-56 (riesenie o dvoch poliach)
