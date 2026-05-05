@@ -12,20 +12,20 @@ namespace Cht
   namespace MMS
   {
     template <int dim>
-    class Solution;
-
-    template <>
-    class Solution<2> : public dealii::Function<2>
+    class Solution : public dealii::Function<dim>
     {
     public:
       Solution()
-        : dealii::Function<2>(2 + 1)
-      {}
+        : dealii::Function<dim>(dim + 1)
+      {
+        static_assert(dim == 2, "The MMS solution is implemented only in 2D.");
+      }
 
-      virtual double value(const dealii::Point<2> &p,
+      virtual double value(const dealii::Point<dim> &p,
                            const unsigned int        component = 0) const override
       {
-        AssertThrow(component < 2 + 1, dealii::ExcIndexRange(component, 0, 2 + 1));
+        AssertThrow(component < dim + 1,
+                    dealii::ExcIndexRange(component, 0, dim + 1));
 
         if (component == 0)
           return mms::velocity_x(p[0], p[1]);
@@ -36,21 +36,21 @@ namespace Cht
     };
 
     template <int dim>
-    class RightHandSide;
-
-    template <>
-    class RightHandSide<2> : public dealii::Function<2>
+    class RightHandSide : public dealii::Function<dim>
     {
     public:
       RightHandSide(const double viscosity)
-        : dealii::Function<2>(2 + 1)
+        : dealii::Function<dim>(dim + 1)
         , viscosity(viscosity)
-      {}
+      {
+        static_assert(dim == 2, "The MMS right hand side is implemented only in 2D.");
+      }
 
-      virtual double value(const dealii::Point<2> &p,
+      virtual double value(const dealii::Point<dim> &p,
                            const unsigned int        component = 0) const override
       {
-        AssertThrow(component < 2 + 1, dealii::ExcIndexRange(component, 0, 2 + 1));
+        AssertThrow(component < dim + 1,
+                    dealii::ExcIndexRange(component, 0, dim + 1));
 
         if (component == 0)
           return mms::momentum_rhs_x(p[0], p[1], viscosity);
@@ -64,17 +64,17 @@ namespace Cht
     };
 
     template <int dim>
-    class TemperatureSolution;
-
-    template <>
-    class TemperatureSolution<2> : public dealii::Function<2>
+    class TemperatureSolution : public dealii::Function<dim>
     {
     public:
       TemperatureSolution()
-        : dealii::Function<2>(1)
-      {}
+        : dealii::Function<dim>(1)
+      {
+        static_assert(dim == 2,
+                      "The MMS temperature solution is implemented only in 2D.");
+      }
 
-      virtual double value(const dealii::Point<2> &p,
+      virtual double value(const dealii::Point<dim> &p,
                            const unsigned int        component = 0) const override
       {
         AssertThrow(component < 1, dealii::ExcIndexRange(component, 0, 1));
@@ -83,18 +83,18 @@ namespace Cht
     };
 
     template <int dim>
-    class TemperatureRightHandSide;
-
-    template <>
-    class TemperatureRightHandSide<2> : public dealii::Function<2>
+    class TemperatureRightHandSide : public dealii::Function<dim>
     {
     public:
       TemperatureRightHandSide(const double thermal_diffusivity)
-        : dealii::Function<2>(1)
+        : dealii::Function<dim>(1)
         , thermal_diffusivity(thermal_diffusivity)
-      {}
+      {
+        static_assert(dim == 2,
+                      "The MMS temperature right hand side is implemented only in 2D.");
+      }
 
-      virtual double value(const dealii::Point<2> &p,
+      virtual double value(const dealii::Point<dim> &p,
                            const unsigned int        component = 0) const override
       {
         AssertThrow(component < 1, dealii::ExcIndexRange(component, 0, 1));
@@ -106,20 +106,21 @@ namespace Cht
     };
 
     template <int dim>
-    class VelocityBoundaryValues;
-
-    template <>
-    class VelocityBoundaryValues<2> : public dealii::Function<2>
+    class VelocityBoundaryValues : public dealii::Function<dim>
     {
     public:
       VelocityBoundaryValues()
-        : dealii::Function<2>(2 + 1)
-      {}
+        : dealii::Function<dim>(dim + 1)
+      {
+        static_assert(dim == 2,
+                      "The MMS velocity boundary values are implemented only in 2D.");
+      }
 
-      virtual double value(const dealii::Point<2> &p,
+      virtual double value(const dealii::Point<dim> &p,
                            const unsigned int        component) const override
       {
-        AssertThrow(component < 2 + 1, dealii::ExcIndexRange(component, 0, 2 + 1));
+        AssertThrow(component < dim + 1,
+                    dealii::ExcIndexRange(component, 0, dim + 1));
 
         if (component == 0)
           return mms::velocity_x(p[0], p[1]);
@@ -130,17 +131,17 @@ namespace Cht
     };
 
     template <int dim>
-    class TemperatureBoundaryValues;
-
-    template <>
-    class TemperatureBoundaryValues<2> : public dealii::Function<2>
+    class TemperatureBoundaryValues : public dealii::Function<dim>
     {
     public:
       TemperatureBoundaryValues()
-        : dealii::Function<2>(1)
-      {}
+        : dealii::Function<dim>(1)
+      {
+        static_assert(dim == 2,
+                      "The MMS temperature boundary values are implemented only in 2D.");
+      }
 
-      virtual double value(const dealii::Point<2> &p,
+      virtual double value(const dealii::Point<dim> &p,
                            const unsigned int        component = 0) const override
       {
         AssertThrow(component < 1, dealii::ExcIndexRange(component, 0, 1));
