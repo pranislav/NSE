@@ -11,6 +11,13 @@ namespace Cht
 {
   namespace MMS
   {
+    enum Component
+    {
+      velocity_x = 0,
+      velocity_y = 1,
+      pressure   = 2
+    };
+
     template <int dim>
     class Solution : public dealii::Function<dim>
     {
@@ -27,10 +34,14 @@ namespace Cht
         AssertThrow(component < dim + 1,
                     dealii::ExcIndexRange(component, 0, dim + 1));
 
-        if (component == 0)
+        if (component == velocity_x)
           return mms::velocity_x(p[0], p[1]);
-        if (component == 1)
+        if (component == velocity_y)
           return mms::velocity_y(p[0], p[1]);
+        if (component == pressure)
+          return mms::pressure(p[0], p[1]);
+
+        DEAL_II_NOT_IMPLEMENTED();
         return mms::pressure(p[0], p[1]);
       }
     };
@@ -52,10 +63,14 @@ namespace Cht
         AssertThrow(component < dim + 1,
                     dealii::ExcIndexRange(component, 0, dim + 1));
 
-        if (component == 0)
+        if (component == velocity_x)
           return mms::momentum_rhs_x(p[0], p[1], viscosity);
-        if (component == 1)
+        if (component == velocity_y)
           return mms::momentum_rhs_y(p[0], p[1], viscosity);
+        if (component == pressure)
+          return mms::continuity_rhs(p[0], p[1]);
+
+        DEAL_II_NOT_IMPLEMENTED();
         return mms::continuity_rhs(p[0], p[1]);
       }
 
@@ -122,10 +137,14 @@ namespace Cht
         AssertThrow(component < dim + 1,
                     dealii::ExcIndexRange(component, 0, dim + 1));
 
-        if (component == 0)
+        if (component == velocity_x)
           return mms::velocity_x(p[0], p[1]);
-        if (component == 1)
+        if (component == velocity_y)
           return mms::velocity_y(p[0], p[1]);
+        if (component == pressure)
+          return 0.0;
+
+        DEAL_II_NOT_IMPLEMENTED();
         return 0.0;
       }
     };
