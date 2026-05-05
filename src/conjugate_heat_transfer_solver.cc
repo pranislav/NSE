@@ -767,8 +767,7 @@ namespace Cht
   }
 
   template <int dim>
-    void ConjugateHeatTransferSolver<dim>::refine_mesh(
-      const unsigned int refinement_cycle)
+  void ConjugateHeatTransferSolver<dim>::mark_cells_for_adaptive_refinement()
   {
     Vector<float> flow_error_per_cell(triangulation.n_active_cells());
     Vector<float> temperature_error_per_cell(triangulation.n_active_cells());
@@ -816,16 +815,46 @@ namespace Cht
                                                     estimated_error_per_cell,
                                                     0.3,
                                                     0.0);
+  }
+
+  template <int dim>
+  void ConjugateHeatTransferSolver<dim>::mark_cells_for_global_refinement()
+  {
+    for (const auto &cell : triangulation.active_cell_iterators())
+      cell->set_refine_flag();
+  }
+
+  template <int dim>
+  void ConjugateHeatTransferSolver<dim>::execute_refinement()
+  {
+    triangulation.execute_coarsening_and_refinement();
+  }
+
+  template <int dim>
+  void ConjugateHeatTransferSolver<dim>::refine_mesh(
+    const unsigned int refinement_cycle)
+  {
+    SolutionTransfer<dim, BlockVector<double>> solution_transfer(dof_handler);
+
+    switch (refinement_mode)
+      {
+        case global_refinement:
+          mark_cells_for_global_refinement();
+          break;
+        case adaptive_refinement:
+          mark_cells_for_adaptive_refinement();
+          break;
+        default:
+          AssertThrow(false, ExcMessage("Unhandled refinement_mode in switch"));
+      }
 
     triangulation.prepare_coarsening_and_refinement();
-    SolutionTransfer<dim, BlockVector<double>> solution_transfer(dof_handler);
     solution_transfer.prepare_for_coarsening_and_refinement(present_solution);
-    triangulation.execute_coarsening_and_refinement();
+    execute_refinement();
 
     setup_dofs();
 
     BlockVector<double> tmp(dofs_per_block);
-
     solution_transfer.interpolate(tmp);
     nonzero_constraints.distribute(tmp);
 

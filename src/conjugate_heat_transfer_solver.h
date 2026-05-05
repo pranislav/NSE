@@ -71,6 +71,9 @@ namespace Cht
     void assemble_flow_system(const bool initial_step);
     void assemble_flow_rhs(const bool initial_step);
     void solve_flow(const bool initial_step);
+    void mark_cells_for_adaptive_refinement();
+    void mark_cells_for_global_refinement();
+    void execute_refinement();
     void refine_mesh(unsigned int refinement_cycle);
     void process_solution(unsigned int refinement);
     void output_results(const unsigned int refinement_cycle,
