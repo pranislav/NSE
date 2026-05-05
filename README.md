@@ -83,7 +83,7 @@ subsection Materials
 
   subsection Material <id>
     set Kind = <fluid|solid>
-    set Thermal conductivity = <thermal_conductivity>
+    set Thermal diffusivity = <thermal_diffusivity>
   end
 end
 

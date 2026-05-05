@@ -40,7 +40,7 @@ namespace Cht
     };
 
     Kind   kind;
-    double thermal_conductivity;
+    double thermal_diffusivity;
   };
 
   struct CaseConfig

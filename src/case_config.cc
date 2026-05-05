@@ -181,7 +181,7 @@ namespace Cht
         prm.enter_subsection("Materials");
         prm.enter_subsection("Material " + std::to_string(material_id));
         prm.declare_entry("Kind", "solid", Patterns::Selection("fluid|solid"));
-        prm.declare_entry("Thermal conductivity", "1.0", Patterns::Double(0.0));
+        prm.declare_entry("Thermal diffusivity", "1.0", Patterns::Double(0.0));
         prm.leave_subsection();
         prm.leave_subsection();
       }
@@ -216,8 +216,8 @@ namespace Cht
         prm.enter_subsection("Material " + std::to_string(material_id));
 
         MaterialData material;
-        material.kind                 = parse_material_kind(prm.get("Kind"));
-        material.thermal_conductivity = prm.get_double("Thermal conductivity");
+        material.kind                = parse_material_kind(prm.get("Kind"));
+        material.thermal_diffusivity = prm.get_double("Thermal diffusivity");
 
         config.materials.emplace(material_id, material);
 

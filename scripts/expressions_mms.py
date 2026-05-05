@@ -31,7 +31,7 @@ class ExprSet:
 
 
 def build_expressions():
-    x, y, nu, kappa = sp.symbols("x y nu kappa", real=True)
+    x, y, nu, thermal_diffusivity = sp.symbols("x y nu thermal_diffusivity", real=True)
     pi = sp.pi
 
     u = (
@@ -52,7 +52,7 @@ def build_expressions():
     grad_T = (sp.diff(T, x), sp.diff(T, y))
     lap_T = sp.diff(T, x, 2) + sp.diff(T, y, 2)
     adv_T = ux * grad_T[0] + uy * grad_T[1]
-    temperature_rhs = sp.simplify(adv_T - kappa * lap_T)
+    temperature_rhs = sp.simplify(adv_T - thermal_diffusivity * lap_T)
 
     return ExprSet(
         u=u,
@@ -61,7 +61,7 @@ def build_expressions():
         momentum_rhs=momentum_rhs,
         continuity_rhs=continuity_rhs,
         temperature_rhs=temperature_rhs,
-    ), (x, y, nu, kappa)
+    ), (x, y, nu, thermal_diffusivity)
 
 
 def boundary_values(expr: sp.Expr, x: sp.Symbol, y: sp.Symbol):
@@ -71,4 +71,3 @@ def boundary_values(expr: sp.Expr, x: sp.Symbol, y: sp.Symbol):
         "y = 0": sp.simplify(expr.subs(y, 0)),
         "y = 1": sp.simplify(expr.subs(y, 1)),
     }
-

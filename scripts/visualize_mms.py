@@ -19,7 +19,7 @@ from expressions_mms import build_expressions
 
 
 def build_functions():
-    exprs, (x, y, nu, kappa) = build_expressions()
+    exprs, (x, y, nu, thermal_diffusivity) = build_expressions()
     funcs = {
         "u_x": sp.lambdify((x, y), exprs.u[0], "numpy"),
         "u_y": sp.lambdify((x, y), exprs.u[1], "numpy"),
@@ -27,7 +27,7 @@ def build_functions():
         "T": sp.lambdify((x, y), exprs.T, "numpy"),
         "fx": sp.lambdify((x, y, nu), exprs.momentum_rhs[0], "numpy"),
         "fy": sp.lambdify((x, y, nu), exprs.momentum_rhs[1], "numpy"),
-        "s": sp.lambdify((x, y, kappa), exprs.temperature_rhs, "numpy"),
+        "s": sp.lambdify((x, y, thermal_diffusivity), exprs.temperature_rhs, "numpy"),
     }
     return funcs
 
@@ -35,7 +35,7 @@ def build_functions():
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--nu", type=float, default=1.0, help="Kinematic viscosity used in the momentum RHS.")
-    parser.add_argument("--kappa", type=float, default=1.0, help="Thermal diffusivity used in the temperature RHS.")
+    parser.add_argument("--thermal-diffusivity", type=float, default=1.0, help="Thermal diffusivity used in the temperature RHS.")
     parser.add_argument("--n", type=int, default=200, help="Grid resolution per axis.")
     parser.add_argument("--output", type=Path, default=Path("mms_visualization.png"))
     parser.add_argument("--show", action="store_true", help="Show the figure interactively.")
@@ -56,7 +56,7 @@ def main():
     T = f["T"](X, Y)
     FX = f["fx"](X, Y, args.nu)
     FY = f["fy"](X, Y, args.nu)
-    S = f["s"](X, Y, args.kappa)
+    S = f["s"](X, Y, args.thermal_diffusivity)
 
     fig, axes = plt.subplots(2, 3, figsize=(15, 9), constrained_layout=True)
     fig.suptitle("Manufactured solution and source terms", fontsize=16)

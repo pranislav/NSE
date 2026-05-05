@@ -16,8 +16,8 @@ inline double momentum_rhs_y(const double x, const double y, const double nu) {
   return (1.0/2.0)*M_PI*(2*M_PI*nu*sin(M_PI*(x - y)) - 2*M_PI*nu*sin(M_PI*(x + y)) + sin(2*M_PI*y) + cos(M_PI*(x - y)) + cos(M_PI*(x + y)));
 }
 inline double continuity_rhs(const double x, const double y) { return 0; }
-inline double temperature_rhs(const double x, const double y, const double kappa) {
-  return (1.0/2.0)*M_PI*(-20*M_PI*kappa*pow(sin(M_PI*x), 2) + 10*M_PI*kappa - 3*cos(M_PI*x)*cos(M_PI*y) + cos(3*M_PI*x)*cos(M_PI*y))*sin(M_PI*y);
+inline double temperature_rhs(const double x, const double y, const double thermal_diffusivity) {
+  return (1.0/2.0)*M_PI*(-20*M_PI*thermal_diffusivity*pow(sin(M_PI*x), 2) + 10*M_PI*thermal_diffusivity - 3*cos(M_PI*x)*cos(M_PI*y) + cos(3*M_PI*x)*cos(M_PI*y))*sin(M_PI*y);
 }
 
 inline double u_x_x0(const double x, const double y) { return 0; }

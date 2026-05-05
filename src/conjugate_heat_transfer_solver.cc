@@ -179,12 +179,12 @@ namespace Cht
   template <int dim>
   std::string ConjugateHeatTransferSolver<dim>::case_tag() const
   {
-    std::vector<std::string> conductivity_parts;
+    std::vector<std::string> diffusivity_parts;
     for (const auto &[material_id, material] : config.materials)
       {
         (void)material_id;
-        conductivity_parts.push_back(
-          format_compact_double(material.thermal_conductivity));
+        diffusivity_parts.push_back(
+          format_compact_double(material.thermal_diffusivity));
       }
 
     std::vector<std::string> velocity_parts;
@@ -199,7 +199,7 @@ namespace Cht
     const std::string temperature_tag =
       temperature_parts.empty() ? "none" : join_with_underscore(temperature_parts);
 
-    return "k_" + join_with_underscore(conductivity_parts) + "-v_" +
+    return "kappa_" + join_with_underscore(diffusivity_parts) + "-v_" +
            join_with_underscore(velocity_parts) + "-Re_" +
            format_compact_double(config.reynolds) + "-T_" + temperature_tag;
   }
@@ -702,8 +702,8 @@ namespace Cht
         Assert(flow_cell != dof_handler.end(), ExcInternalError());
 
         const bool   in_fluid_domain = cell_is_in_fluid_domain(flow_cell);
-        const double thermal_conductivity =
-          material_data(cell->material_id()).thermal_conductivity;
+        const double thermal_diffusivity =
+          material_data(cell->material_id()).thermal_diffusivity;
 
         if (in_fluid_domain)
           {
@@ -724,7 +724,7 @@ namespace Cht
               for (unsigned int j = 0; j < dofs_per_cell; ++j)
                 {
                   local_matrix(i, j) +=
-                    (thermal_conductivity * grad_phi_T[i] * grad_phi_T[j] *
+                    (thermal_diffusivity * grad_phi_T[i] * grad_phi_T[j] *
                      temperature_fe_values.JxW(q));
 
                   if (in_fluid_domain)
