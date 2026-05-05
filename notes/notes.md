@@ -21,6 +21,7 @@ teoria
 refactor
 - ConjugateHeatTransferSolver is a big class - does it make sense to spolit somehow?
 - split main, run to smaller functions (prints, loads)
+- no-slip just special case of dirichlet but treated independently and moreover differently, less generally (setup_flow_dofs)
 
 benchmarking
 - manufactured solutions
