@@ -76,6 +76,7 @@ subsection Solver
   set Gamma = <gamma>
   set Polynomial degree = <degree>
   set Adaptive refinement cycles = <adaptive_refinement_cycles>
+  set Use MMS = <true|false>
 end
 
 subsection Materials

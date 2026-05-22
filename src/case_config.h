@@ -50,6 +50,7 @@ namespace Cht
     double                                                gamma;
     unsigned int                                          degree;
     unsigned int                                          adaptive_refinement_cycles;
+    bool                                                  use_mms;
     std::map<dealii::types::material_id, MaterialData>    materials;
     std::set<dealii::types::boundary_id>                  no_slip_boundary_ids;
     std::vector<VelocityBoundaryCondition>                velocity_dirichlet_boundaries;
