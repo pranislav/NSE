@@ -2,6 +2,8 @@
 
 #include "boundary_conditions.h"
 
+#include "mms.h"
+
 #include <deal.II/base/exceptions.h>
 #include <deal.II/base/quadrature_lib.h>
 #include <deal.II/base/utilities.h>
@@ -520,6 +522,8 @@ namespace Cht
     const FEValuesExtractors::Vector velocities(0);
     const FEValuesExtractors::Scalar pressure(dim);
 
+    Cht::MMS::RightHandSide<dim> manufactured_rhs(viscosity);
+
     for (const auto &cell : dof_handler.active_cell_iterators())
       {
         hp_fe_values.reinit(cell);
@@ -562,6 +566,10 @@ namespace Cht
                 phi_u[k]      = fe_values[velocities].value(k, q);
                 phi_p[k]      = fe_values[pressure].value(k, q);
               }
+              const Tensor<1, dim> f = 
+                config.use_mms ?
+                  manufactured_rhs.value(fe_values.quadrature_point(q)) :
+                  Tensor<1, dim>();
 
             for (unsigned int i = 0; i < dofs_per_cell; ++i)
               {
@@ -590,6 +598,10 @@ namespace Cht
                    phi_p[i] * present_velocity_divergence -
                    gamma * div_phi_u[i] * present_velocity_divergence) *
                   fe_values.JxW(q);
+                if (config.use_mms)
+                  {
+                    local_rhs(i) += (phi_u[i] * f) * fe_values.JxW(q);
+                  }
               }
           }
 
