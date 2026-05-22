@@ -4,6 +4,7 @@
 #include <deal.II/base/exceptions.h>
 #include <deal.II/base/function.h>
 #include <deal.II/base/point.h>
+#include <deal.II/base/tensor.h>
 
 #include "mms_generated.h"
 
@@ -47,31 +48,21 @@ namespace Cht
     };
 
     template <int dim>
-    class RightHandSide : public dealii::Function<dim>
+    class RightHandSide
     {
     public:
       RightHandSide(const double viscosity)
-        : dealii::Function<dim>(dim + 1)
-        , viscosity(viscosity)
+        : viscosity(viscosity)
       {
         static_assert(dim == 2, "The MMS right hand side is implemented only in 2D.");
       }
 
-      virtual double value(const dealii::Point<dim> &p,
-                           const unsigned int        component = 0) const override
+      dealii::Tensor<1, dim> value(const dealii::Point<dim> &p) const
       {
-        AssertThrow(component < dim + 1,
-                    dealii::ExcIndexRange(component, 0, dim + 1));
-
-        if (component == velocity_x)
-          return mms::momentum_rhs_x(p[0], p[1], viscosity);
-        if (component == velocity_y)
-          return mms::momentum_rhs_y(p[0], p[1], viscosity);
-        if (component == pressure)
-          return mms::continuity_rhs(p[0], p[1]);
-
-        DEAL_II_NOT_IMPLEMENTED();
-        return mms::continuity_rhs(p[0], p[1]);
+        dealii::Tensor<1, dim> rhs;
+        rhs[velocity_x] = mms::momentum_rhs_x(p[0], p[1], viscosity);
+        rhs[velocity_y] = mms::momentum_rhs_y(p[0], p[1], viscosity);
+        return rhs;
       }
 
     private:
