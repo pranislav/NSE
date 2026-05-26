@@ -441,14 +441,6 @@ namespace Cht
             fe_collection.component_mask(velocities));
         }
 
-      for (const auto id : config.no_slip_boundary_ids)
-        VectorTools::interpolate_boundary_values(
-          dof_handler,
-          id,
-          Functions::ZeroFunction<dim>(dim + 1),
-          nonzero_constraints,
-          fe_collection.component_mask(velocities));
-
       add_fluid_solid_interface_constraints(nonzero_constraints);
     }
     nonzero_constraints.close();
@@ -462,14 +454,6 @@ namespace Cht
         VectorTools::interpolate_boundary_values(
           dof_handler,
           boundary.boundary_id,
-          Functions::ZeroFunction<dim>(dim + 1),
-          zero_constraints,
-          fe_collection.component_mask(velocities));
-
-      for (const auto id : config.no_slip_boundary_ids)
-        VectorTools::interpolate_boundary_values(
-          dof_handler,
-          id,
           Functions::ZeroFunction<dim>(dim + 1),
           zero_constraints,
           fe_collection.component_mask(velocities));

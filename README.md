@@ -89,7 +89,6 @@ subsection Materials
 end
 
 subsection Boundary conditions
-  set No-slip boundaries = <comma_separated_boundary_ids>
   set Velocity Dirichlet = <boundary_id:type:component:coordinate:value; ...>
   set Temperature Dirichlet = <boundary_id:value; ...>
 end
@@ -106,3 +105,6 @@ Velocity entry format:
 - `component`: `0` for `u_x`, `1` for `u_y`
 - `coordinate`: axis used by the profile, `0` for `x`, `1` for `y`
 - `value`: imposed constant value or parabola peak value
+
+No-slip boundaries are represented as zero-valued constant velocity Dirichlet
+entries, one per constrained velocity component.

@@ -69,14 +69,6 @@ namespace Cht
       return material_ids;
     }
 
-    std::set<types::boundary_id> parse_boundary_id_set(const std::string &text)
-    {
-      std::set<types::boundary_id> ids;
-      for (const auto &token : split_string(text, ','))
-        ids.insert(static_cast<types::boundary_id>(std::stoi(token)));
-      return ids;
-    }
-
     std::set<types::material_id> parse_material_id_set(const std::string &text)
     {
       std::set<types::material_id> ids;
@@ -170,7 +162,6 @@ namespace Cht
     prm.leave_subsection();
 
     prm.enter_subsection("Boundary conditions");
-    prm.declare_entry("No-slip boundaries", "", Patterns::Anything());
     prm.declare_entry("Velocity Dirichlet", "", Patterns::Anything());
     prm.declare_entry("Temperature Dirichlet", "", Patterns::Anything());
     prm.leave_subsection();
@@ -228,8 +219,6 @@ namespace Cht
       }
 
     prm.enter_subsection("Boundary conditions");
-    config.no_slip_boundary_ids =
-      parse_boundary_id_set(prm.get("No-slip boundaries"));
     config.velocity_dirichlet_boundaries =
       parse_velocity_boundary_conditions(prm.get("Velocity Dirichlet"));
     config.temperature_dirichlet_boundaries =
