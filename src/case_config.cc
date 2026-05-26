@@ -153,7 +153,7 @@ namespace Cht
     prm.declare_entry("Reynolds number", "7500", Patterns::Double(0.0));
     prm.declare_entry("Gamma", "1.0", Patterns::Double(0.0));
     prm.declare_entry("Polynomial degree", "1", Patterns::Integer(1));
-    prm.declare_entry("Adaptive refinement cycles", "4", Patterns::Integer(0));
+    prm.declare_entry("Refinement cycles", "4", Patterns::Integer(0));
     prm.declare_entry("Use MMS", "false", Patterns::Bool());
     prm.leave_subsection();
 
@@ -190,8 +190,7 @@ namespace Cht
     config.reynolds                   = prm.get_double("Reynolds number");
     config.gamma                      = prm.get_double("Gamma");
     config.degree                     = prm.get_integer("Polynomial degree");
-    config.adaptive_refinement_cycles =
-      prm.get_integer("Adaptive refinement cycles");
+    config.refinement_cycles = prm.get_integer("Refinement cycles");
     config.use_mms = prm.get_bool("Use MMS");
     prm.leave_subsection();
 

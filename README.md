@@ -75,7 +75,7 @@ subsection Solver
   set Reynolds number = <reynolds_number>
   set Gamma = <gamma>
   set Polynomial degree = <degree>
-  set Adaptive refinement cycles = <adaptive_refinement_cycles>
+  set Refinement cycles = <refinement_cycles>
   set Use MMS = <true|false>
 end
 

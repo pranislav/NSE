@@ -6,7 +6,7 @@ subsection Solver
   set Reynolds number = 9500
   set Gamma = 1.0
   set Polynomial degree = 1
-  set Adaptive refinement cycles = 2
+  set Refinement cycles = 2
 end
 
 subsection Materials

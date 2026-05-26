@@ -69,7 +69,7 @@ int main(int argc, char **argv)
                                             output_directory,
                                             save_mesh_output,
                                             refinement_mode);
-      solver.run(case_config.adaptive_refinement_cycles);
+      solver.run(case_config.refinement_cycles);
     }
   catch (std::exception &exc)
     {

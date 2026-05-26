@@ -49,7 +49,7 @@ namespace Cht
     double                                                reynolds;
     double                                                gamma;
     unsigned int                                          degree;
-    unsigned int                                          adaptive_refinement_cycles;
+    unsigned int                                          refinement_cycles;
     bool                                                  use_mms;
     std::map<dealii::types::material_id, MaterialData>    materials;
     std::vector<VelocityBoundaryCondition>                velocity_dirichlet_boundaries;
