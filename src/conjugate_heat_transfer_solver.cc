@@ -418,30 +418,47 @@ namespace Cht
 
       DoFTools::make_hanging_node_constraints(dof_handler, nonzero_constraints);
 
-      for (const auto &boundary : config.velocity_dirichlet_boundaries)
+      if (config.use_mms)
         {
-          const auto extent_it = boundary_extents.find(boundary.boundary_id);
-          AssertThrow(extent_it != boundary_extents.end() &&
-                        extent_it->second.initialized,
-                      ExcMessage("Missing boundary extent for configured "
-                                 "velocity boundary."));
-
-          AssertIndexRange(boundary.component, dim);
-          AssertIndexRange(boundary.coordinate, dim);
-
-          const auto &extent = extent_it->second;
-
-          VectorTools::interpolate_boundary_values(
-            dof_handler,
-            boundary.boundary_id,
-            VelocityBoundaryValues<dim>(boundary,
-                                        extent.min[boundary.coordinate],
-                                        extent.max[boundary.coordinate]),
-            nonzero_constraints,
-            fe_collection.component_mask(velocities));
+          for (const auto &entry : boundary_extents)
+            {
+              const auto boundary_id = entry.first;
+              VectorTools::interpolate_boundary_values(
+                dof_handler,
+                boundary_id,
+                MMS::VelocityBoundaryValues<dim>(),
+                nonzero_constraints,
+                fe_collection.component_mask(velocities));
+            }
         }
+      else
+        {
+          for (const auto &boundary : config.velocity_dirichlet_boundaries)
+            {
+              const auto extent_it = boundary_extents.find(boundary.boundary_id);
+              AssertThrow(extent_it != boundary_extents.end() &&
+                            extent_it->second.initialized,
+                          ExcMessage("Missing boundary extent for configured "
+                                    "velocity boundary."));
 
-      add_fluid_solid_interface_constraints(nonzero_constraints);
+              AssertIndexRange(boundary.component, dim);
+              AssertIndexRange(boundary.coordinate, dim);
+
+              const auto &extent = extent_it->second;
+
+              VectorTools::interpolate_boundary_values(
+                dof_handler,
+                boundary.boundary_id,
+                VelocityBoundaryValues<dim>(boundary,
+                                            extent.min[boundary.coordinate],
+                                            extent.max[boundary.coordinate]),
+                nonzero_constraints,
+                fe_collection.component_mask(velocities));
+            }
+          }
+
+      if (not config.use_mms)
+        add_fluid_solid_interface_constraints(nonzero_constraints);
     }
     nonzero_constraints.close();
 
@@ -450,13 +467,29 @@ namespace Cht
 
       DoFTools::make_hanging_node_constraints(dof_handler, zero_constraints);
 
-      for (const auto &boundary : config.velocity_dirichlet_boundaries)
-        VectorTools::interpolate_boundary_values(
-          dof_handler,
-          boundary.boundary_id,
-          Functions::ZeroFunction<dim>(dim + 1),
-          zero_constraints,
-          fe_collection.component_mask(velocities));
+      if (config.use_mms)
+        {
+          for (const auto &entry : boundary_extents)
+            {
+              const auto boundary_id = entry.first;
+              VectorTools::interpolate_boundary_values(
+                dof_handler,
+                boundary_id,
+                Functions::ZeroFunction<dim>(dim + 1),
+                zero_constraints,
+                fe_collection.component_mask(velocities));
+            }
+        }
+      else
+        {
+          for (const auto &boundary : config.velocity_dirichlet_boundaries)
+            VectorTools::interpolate_boundary_values(
+              dof_handler,
+              boundary.boundary_id,
+              Functions::ZeroFunction<dim>(dim + 1),
+              zero_constraints,
+              fe_collection.component_mask(velocities));
+        }
 
       add_fluid_solid_interface_constraints(zero_constraints);
     }
