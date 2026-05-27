@@ -1,14 +1,9 @@
-
-- nakreslit to analyticke riesenie
-- a porovnat s numerickym (nejak smart)
-- zohnat to analyticke riesenie
 - skontrolovat assembly advection termu
 
 TODO
-- solutions naming convention
 - pridat vypisovacky aj na teplotu
-- nakreslit rozne riesenia na porovnanie
 - spomenut explicitne v readme ake rovnice to riesi
+- ako spustat generate do README
 
 otazky
 - material_data? it?
@@ -21,10 +16,6 @@ teoria
 refactor
 - ConjugateHeatTransferSolver is a big class - does it make sense to spolit somehow?
 - split main, run to smaller functions (prints, loads)
-- no-slip just special case of dirichlet but treated independently and moreover differently, less generally (setup_flow_dofs)
 
 benchmarking
 - manufactured solutions
-- rozsirit funkcionalitu, aby sa to dalo (source term)
-
-fem-bookmark 2.2.6

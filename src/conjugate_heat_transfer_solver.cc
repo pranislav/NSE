@@ -969,7 +969,10 @@ namespace Cht
                   process_solution(refinement_n);
               }
           }
-
+        
+        if (config.use_mms)
+          compute_errors(refinement_n);
+        
         if (refinement_n < max_n_refinements)
           refine_mesh(refinement_n + 1);
       }
@@ -1068,6 +1071,82 @@ namespace Cht
         f << std::endl;
       }
   }
+
+  template <int dim>
+  void ConjugateHeatTransferSolver<dim>::compute_errors(const unsigned int cycle)
+  {
+    // Compute the mean pressure $\frac{1}{\Omega} \int_{\Omega} p(x) dx $
+    // and then subtract it from each pressure coefficient. This will result
+    // in a pressure with mean value zero. Here we make use of the fact that
+    // the pressure is component $dim$ and that the finite element space
+    // is nodal.
+    const double mean_pressure = VectorTools::compute_mean_value(
+      dof_handler, QGauss<dim>(degree + 2), flow_solution, dim); // TODO former pressure_degree (right change?)
+    flow_solution.block(1).add(-mean_pressure);
+    std::cout << "   Note: The mean value was adjusted by " << -mean_pressure
+              << std::endl;
+
+    const ComponentSelectFunction<dim> pressure_mask(dim, dim + 1);
+    const ComponentSelectFunction<dim> velocity_mask(std::make_pair(0, dim),
+                                                     dim + 1);
+
+    Vector<float> difference_per_cell(triangulation.n_active_cells());
+    VectorTools::integrate_difference(dof_handler,
+                                      flow_solution,
+                                      Cht::MMS::Solution<dim>(),
+                                      difference_per_cell,
+                                      QGauss<dim>(degree + 2),
+                                      VectorTools::L2_norm,
+                                      &velocity_mask);
+
+    const double Velocity_L2_error =
+      VectorTools::compute_global_error(triangulation,
+                                        difference_per_cell,
+                                        VectorTools::L2_norm);
+
+    VectorTools::integrate_difference(dof_handler,
+                                      flow_solution,
+                                      Cht::MMS::Solution<dim>(),
+                                      difference_per_cell,
+                                      QGauss<dim>(degree + 2),
+                                      VectorTools::L2_norm,
+                                      &pressure_mask);
+
+    const double Pressure_L2_error =
+      VectorTools::compute_global_error(triangulation,
+                                        difference_per_cell,
+                                        VectorTools::L2_norm);
+
+    VectorTools::integrate_difference(dof_handler,
+                                      flow_solution,
+                                      Cht::MMS::Solution<dim>(),
+                                      difference_per_cell,
+                                      QGauss<dim>(degree + 2),
+                                      VectorTools::H1_norm,
+                                      &velocity_mask);
+
+    const double Velocity_H1_error =
+      VectorTools::compute_global_error(triangulation,
+                                        difference_per_cell,
+                                        VectorTools::H1_norm);
+
+    std::cout << std::endl
+              << "   Velocity L2 Error: " << Velocity_L2_error << std::endl
+              << "   Pressure L2 Error: " << Pressure_L2_error << std::endl
+              << "   Velocity H1 Error: " << Velocity_H1_error << std::endl;
+    
+    const unsigned int n_active_cells = triangulation.n_active_cells();
+    const unsigned int n_dofs         = dof_handler.n_dofs();
+              
+    convergence_table.add_value("cycle", cycle);
+    convergence_table.add_value("cells", n_active_cells);
+    convergence_table.add_value("dofs", n_dofs);
+    convergence_table.add_value("L2_velocity", Velocity_L2_error);
+    convergence_table.add_value("L2_pressure", Pressure_L2_error);
+    convergence_table.add_value("H1_velocity", Velocity_H1_error);
+    // convergence_table.add_value("Linfty", Linfty_error);
+  }
+
 
   template <int dim>
   void ConjugateHeatTransferSolver<dim>::run(const unsigned int refinement)

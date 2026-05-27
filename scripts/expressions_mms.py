@@ -25,6 +25,9 @@ class ExprSet:
     u: tuple[sp.Expr, sp.Expr]
     p: sp.Expr
     T: sp.Expr
+    grad_u: list[list[sp.Expr]]
+    grad_p: tuple[sp.Expr, sp.Expr]
+    grad_T: tuple[sp.Expr, sp.Expr]
     momentum_rhs: tuple[sp.Expr, sp.Expr]
     continuity_rhs: sp.Expr
     temperature_rhs: sp.Expr
@@ -58,6 +61,9 @@ def build_expressions():
         u=u,
         p=p,
         T=T,
+        grad_u=grad_u,
+        grad_p=grad_p,
+        grad_T=grad_T,
         momentum_rhs=momentum_rhs,
         continuity_rhs=continuity_rhs,
         temperature_rhs=temperature_rhs,

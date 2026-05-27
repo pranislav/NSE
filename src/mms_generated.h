@@ -9,6 +9,15 @@ inline double velocity_y(const double x, const double y) { return -sin(M_PI*y)*c
 inline double pressure(const double x, const double y) { return sin(M_PI*y)*cos(M_PI*x); }
 inline double temperature(const double x, const double y) { return sin(M_PI*y)*cos(2*M_PI*x); }
 
+inline double grad_x_velocity_x(const double x, const double y) { return M_PI*cos(M_PI*x)*cos(M_PI*y); }
+inline double grad_y_velocity_x(const double x, const double y) { return -M_PI*sin(M_PI*x)*sin(M_PI*y); }
+inline double grad_x_velocity_y(const double x, const double y) { return M_PI*sin(M_PI*x)*sin(M_PI*y); }
+inline double grad_y_velocity_y(const double x, const double y) { return -M_PI*cos(M_PI*x)*cos(M_PI*y); }
+inline double grad_x_pressure(const double x, const double y) { return -M_PI*sin(M_PI*x)*sin(M_PI*y); }
+inline double grad_y_pressure(const double x, const double y) { return M_PI*cos(M_PI*x)*cos(M_PI*y); }
+inline double grad_x_temperature(const double x, const double y) { return -2*M_PI*sin(2*M_PI*x)*sin(M_PI*y); }
+inline double grad_y_temperature(const double x, const double y) { return M_PI*cos(2*M_PI*x)*cos(M_PI*y); }
+
 inline double momentum_rhs_x(const double x, const double y, const double nu) {
   return M_PI*(2*M_PI*nu*cos(M_PI*y) - sin(M_PI*y) + cos(M_PI*x))*sin(M_PI*x);
 }
@@ -19,25 +28,5 @@ inline double continuity_rhs(const double x, const double y) { return 0; }
 inline double temperature_rhs(const double x, const double y, const double thermal_diffusivity) {
   return (1.0/2.0)*M_PI*(-20*M_PI*thermal_diffusivity*pow(sin(M_PI*x), 2) + 10*M_PI*thermal_diffusivity - 3*cos(M_PI*x)*cos(M_PI*y) + cos(3*M_PI*x)*cos(M_PI*y))*sin(M_PI*y);
 }
-
-inline double u_x_x0(const double x, const double y) { return 0; }
-inline double u_x_x1(const double x, const double y) { return 0; }
-inline double u_x_y0(const double x, const double y) { return sin(M_PI*x); }
-inline double u_x_y1(const double x, const double y) { return -sin(M_PI*x); }
-
-inline double u_y_x0(const double x, const double y) { return -sin(M_PI*y); }
-inline double u_y_x1(const double x, const double y) { return sin(M_PI*y); }
-inline double u_y_y0(const double x, const double y) { return 0; }
-inline double u_y_y1(const double x, const double y) { return 0; }
-
-inline double p_x0(const double x, const double y) { return sin(M_PI*y); }
-inline double p_x1(const double x, const double y) { return -sin(M_PI*y); }
-inline double p_y0(const double x, const double y) { return 0; }
-inline double p_y1(const double x, const double y) { return 0; }
-
-inline double T_x0(const double x, const double y) { return sin(M_PI*y); }
-inline double T_x1(const double x, const double y) { return sin(M_PI*y); }
-inline double T_y0(const double x, const double y) { return 0; }
-inline double T_y1(const double x, const double y) { return 0; }
 
 } // namespace mms

@@ -37,6 +37,15 @@ def write_cpp(path: Path, exprs: ExprSet, x, y, nu, thermal_diffusivity):
     lines.append("inline double pressure(const double x, const double y) { return " + cxx(exprs.p) + "; }")
     lines.append("inline double temperature(const double x, const double y) { return " + cxx(exprs.T) + "; }")
     lines.append("")
+    lines.append("inline double grad_x_velocity_x(const double x, const double y) { return " + cxx(exprs.grad_u[0][0]) + "; }")
+    lines.append("inline double grad_y_velocity_x(const double x, const double y) { return " + cxx(exprs.grad_u[0][1]) + "; }")
+    lines.append("inline double grad_x_velocity_y(const double x, const double y) { return " + cxx(exprs.grad_u[1][0]) + "; }")
+    lines.append("inline double grad_y_velocity_y(const double x, const double y) { return " + cxx(exprs.grad_u[1][1]) + "; }")
+    lines.append("inline double grad_x_pressure(const double x, const double y) { return " + cxx(exprs.grad_p[0]) + "; }")
+    lines.append("inline double grad_y_pressure(const double x, const double y) { return " + cxx(exprs.grad_p[1]) + "; }")
+    lines.append("inline double grad_x_temperature(const double x, const double y) { return " + cxx(exprs.grad_T[0]) + "; }")
+    lines.append("inline double grad_y_temperature(const double x, const double y) { return " + cxx(exprs.grad_T[1]) + "; }")
+    lines.append("")
     lines.append("inline double momentum_rhs_x(const double x, const double y, const double nu) {")
     lines.append("  return " + cxx(exprs.momentum_rhs[0]) + ";")
     lines.append("}")
@@ -48,17 +57,6 @@ def write_cpp(path: Path, exprs: ExprSet, x, y, nu, thermal_diffusivity):
     lines.append("  return " + cxx(exprs.temperature_rhs) + ";")
     lines.append("}")
     lines.append("")
-    for name, field in [("u_x", exprs.u[0]), ("u_y", exprs.u[1]), ("p", exprs.p), ("T", exprs.T)]:
-        values = boundary_values(field, x, y)
-        for label, expr in values.items():
-            fn = (
-                "x0" if label == "x = 0" else
-                "x1" if label == "x = 1" else
-                "y0" if label == "y = 0" else
-                "y1"
-            )
-            lines.append(f"inline double {name}_{fn}(const double x, const double y) {{ return {cxx(expr)}; }}")
-        lines.append("")
     lines.append("} // namespace mms")
     lines.append("")
 
@@ -107,9 +105,11 @@ def write_latex(path: Path, exprs: ExprSet, x, y, nu, thermal_diffusivity):
 
 
 def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--cpp-out", type=Path, default=Path("src/mms_generated.h"))
-    parser.add_argument("--tex-out", type=Path, default=Path("mms_report.tex"))
+    parser = argparse.ArgumentParser(
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter
+    )
+    parser.add_argument("--cpp-out", type=Path, default=Path("src/mms_generated.h"), help="Path to the generated C++ header")
+    parser.add_argument("--tex-out", type=Path, default=Path("mms_report.tex"), help="Path to the generated LaTeX report")
     args = parser.parse_args()
 
     exprs, (x, y, nu, thermal_diffusivity) = build_expressions()

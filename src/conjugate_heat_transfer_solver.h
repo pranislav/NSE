@@ -14,6 +14,7 @@
 #include <deal.II/lac/block_sparse_matrix.h>
 #include <deal.II/lac/block_vector.h>
 #include <deal.II/lac/sparse_matrix.h>
+#include <deal.II/base/convergence_table.h>
 
 #include <array>
 #include <map>
@@ -76,6 +77,7 @@ namespace Cht
     void execute_refinement();
     void refine_mesh(unsigned int refinement_cycle);
     void process_solution(unsigned int refinement);
+    void compute_errors(const unsigned int cycle);
     void output_results(const unsigned int refinement_cycle,
                         const unsigned int newton_step) const;
     void output_mesh(const unsigned int refinement_cycle) const;
@@ -122,6 +124,8 @@ namespace Cht
     dealii::BlockVector<double> evaluation_point;
     dealii::Vector<double>      temperature_solution;
     dealii::Vector<double>      temperature_rhs;
+
+    dealii::ConvergenceTable convergence_table;
   };
 }
 
