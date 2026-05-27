@@ -154,7 +154,8 @@ namespace Cht
         if (component == velocity_y)
           return mms::velocity_y(p[0], p[1]);
         if (component == pressure)
-          return 0.0; // TODO does it make sense?
+          AssertThrow(false,
+            dealii::ExcMessage("Pressure component should not be requested."));
 
         DEAL_II_NOT_IMPLEMENTED();
         return 0.0;
