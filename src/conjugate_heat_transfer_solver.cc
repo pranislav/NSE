@@ -512,9 +512,9 @@ namespace Cht
 
     system_matrix.reinit(sparsity_pattern);
 
-    present_solution.reinit(dofs_per_block);
+    flow_solution.reinit(dofs_per_block);
     newton_update.reinit(dofs_per_block);
-    system_rhs.reinit(dofs_per_block);
+    flow_rhs.reinit(dofs_per_block);
   }
 
   template <int dim>
@@ -524,7 +524,7 @@ namespace Cht
     if (assemble_matrix)
       system_matrix = 0;
 
-    system_rhs = 0;
+    flow_rhs = 0;
 
     const UpdateFlags update_flags =
       update_values | update_quadrature_points | update_JxW_values |
@@ -632,11 +632,11 @@ namespace Cht
                                                       local_rhs,
                                                       local_dof_indices,
                                                       system_matrix,
-                                                      system_rhs);
+                                                      flow_rhs);
         else
           constraints_used.distribute_local_to_global(local_rhs,
                                                       local_dof_indices,
-                                                      system_rhs);
+                                                      flow_rhs);
       }
 
     if (assemble_matrix)
@@ -666,7 +666,7 @@ namespace Cht
       initial_step ? nonzero_constraints : zero_constraints;
 
     SolverControl solver_control(system_matrix.m(),
-                                 1e-4 * system_rhs.l2_norm(),
+                                 1e-4 * flow_rhs.l2_norm(),
                                  true);
 
     SolverFGMRES<BlockVector<double>> gmres(solver_control);
@@ -681,7 +681,7 @@ namespace Cht
       pressure_mass_matrix,
       pmass_preconditioner);
 
-    gmres.solve(system_matrix, newton_update, system_rhs, preconditioner);
+    gmres.solve(system_matrix, newton_update, flow_rhs, preconditioner);
     std::cout << "FGMRES steps: " << solver_control.last_step() << std::endl;
 
     constraints_used.distribute(newton_update);
@@ -738,7 +738,7 @@ namespace Cht
           {
             flow_fe_values.reinit(flow_cell);
             flow_fe_values.get_present_fe_values()[velocities].get_function_values(
-              present_solution, velocity_values);
+              flow_solution, velocity_values);
           }
 
         for (unsigned int q = 0; q < n_q_points; ++q)
@@ -811,7 +811,7 @@ namespace Cht
       dof_handler,
       face_quadratures,
       std::map<types::boundary_id, const Function<dim> *>(),
-      present_solution,
+      flow_solution,
       flow_error_per_cell,
       fe_collection.component_mask(velocity));
 
@@ -878,7 +878,7 @@ namespace Cht
       }
 
     triangulation.prepare_coarsening_and_refinement();
-    solution_transfer.prepare_for_coarsening_and_refinement(present_solution);
+    solution_transfer.prepare_for_coarsening_and_refinement(flow_solution);
     execute_refinement();
 
     setup_dofs();
@@ -888,7 +888,7 @@ namespace Cht
     nonzero_constraints.distribute(tmp);
 
     initialize_system();
-    present_solution = tmp;
+    flow_solution = tmp;
 
     if (save_mesh_output)
       output_mesh(refinement_cycle);
@@ -920,32 +920,32 @@ namespace Cht
               {
                 setup_dofs();
                 initialize_system();
-                evaluation_point = present_solution;
+                evaluation_point = flow_solution;
                 assemble_flow_system(first_step);
                 solve_flow(first_step);
-                present_solution = newton_update;
-                nonzero_constraints.distribute(present_solution);
+                flow_solution = newton_update;
+                nonzero_constraints.distribute(flow_solution);
                 first_step       = false;
-                evaluation_point = present_solution;
+                evaluation_point = flow_solution;
                 assemble_flow_rhs(first_step);
-                current_res = system_rhs.l2_norm();
+                current_res = flow_rhs.l2_norm();
                 std::cout << "The residual of initial guess is " << current_res
                           << std::endl;
                 last_res = current_res;
               }
             else
               {
-                evaluation_point = present_solution;
+                evaluation_point = flow_solution;
                 assemble_flow_system(first_step);
                 solve_flow(first_step);
 
                 for (double alpha = 1.0; alpha > 1e-5; alpha *= 0.5)
                   {
-                    evaluation_point = present_solution;
+                    evaluation_point = flow_solution;
                     evaluation_point.add(alpha, newton_update);
                     nonzero_constraints.distribute(evaluation_point);
                     assemble_flow_rhs(first_step);
-                    current_res = system_rhs.l2_norm();
+                    current_res = flow_rhs.l2_norm();
                     std::cout << "  alpha: " << std::setw(10) << alpha
                               << std::setw(0)
                               << "  residual: " << current_res << std::endl;
@@ -953,7 +953,7 @@ namespace Cht
                       break;
                   }
 
-                present_solution = evaluation_point;
+                flow_solution = evaluation_point;
                 std::cout << "  number of line searches: " << line_search_n
                           << "  residual: " << current_res << std::endl;
                 last_res = current_res;
@@ -1010,7 +1010,7 @@ namespace Cht
 
     DataOut<dim> data_out;
     data_out.attach_dof_handler(dof_handler);
-    data_out.add_data_vector(present_solution,
+    data_out.add_data_vector(flow_solution,
                              solution_names,
                              DataOut<dim>::type_dof_data,
                              data_component_interpretation);
@@ -1060,7 +1060,7 @@ namespace Cht
         p[dim - 1] = i / 100.0;
 
         Vector<double> tmp_vector(dim + 1);
-        VectorTools::point_value(dof_handler, present_solution, p, tmp_vector);
+        VectorTools::point_value(dof_handler, flow_solution, p, tmp_vector);
         f << p[dim - 1];
 
         for (int j = 0; j < dim; ++j)

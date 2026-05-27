@@ -116,9 +116,9 @@ namespace Cht
     dealii::SparsityPattern           temperature_sparsity_pattern;
     dealii::SparseMatrix<double>      temperature_matrix;
 
-    dealii::BlockVector<double> present_solution;
+    dealii::BlockVector<double> flow_solution;
     dealii::BlockVector<double> newton_update;
-    dealii::BlockVector<double> system_rhs;
+    dealii::BlockVector<double> flow_rhs;
     dealii::BlockVector<double> evaluation_point;
     dealii::Vector<double>      temperature_solution;
     dealii::Vector<double>      temperature_rhs;
