@@ -89,6 +89,8 @@ namespace Cht
     void compute_initial_guess(double step_size);
     std::string case_tag() const;
     static std::string format_compact_double(double value);
+    void make_error_table();
+    std::string make_error_filename();
 
     const CaseConfig                     config;
     const RefinementMode                 refinement_mode;

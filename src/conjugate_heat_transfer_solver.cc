@@ -1147,6 +1147,60 @@ namespace Cht
     // convergence_table.add_value("Linfty", Linfty_error);
   }
 
+  template <int dim>
+  void ConjugateHeatTransferSolver<dim>::make_error_table()
+    {
+      std::string error_filename = make_error_filename();
+      std::ofstream org_mode_table(error_filename + ".org");
+      convergence_table.write_text(org_mode_table, TableHandler::TextOutputFormat::org_mode_table);
+
+
+      convergence_table.set_precision("L2_velocity", 3);
+      convergence_table.set_precision("L2_pressure", 3);
+      convergence_table.set_precision("H1_velocity", 3);
+  
+      convergence_table.set_scientific("L2_velocity", true);
+      convergence_table.set_scientific("L2_pressure", true);
+      convergence_table.set_scientific("H1_velocity", true);
+  
+      convergence_table.set_tex_caption("cells", "\\# cells");
+      convergence_table.set_tex_caption("dofs", "\\# dofs");
+      convergence_table.set_tex_caption("L2_velocity", "$L^2$ velocity");
+      convergence_table.set_tex_caption("L2_pressure", "$L^2$ pressure");
+      convergence_table.set_tex_caption("H1_velocity", "$H^1$ velocity");
+  
+      // convergence_table.set_tex_format("cells", "r");
+      // convergence_table.set_tex_format("dofs", "r");
+  
+      std::cout << std::endl;
+      convergence_table.write_text(std::cout);
+
+      std::ofstream error_table_file(error_filename + ".tex");
+  
+      convergence_table.write_tex(error_table_file);
+  
+    }
+
+    template <int dim>
+    std::string ConjugateHeatTransferSolver<dim>::make_error_filename()
+    {
+      std::string error_filename = output_directory + "/error";
+      switch (refinement_mode)
+        {
+          case global_refinement:
+            error_filename += "-global";
+            break;
+          case adaptive_refinement:
+            error_filename += "-adaptive";
+            break;
+          default:
+            DEAL_II_ASSERT_UNREACHABLE();
+        }
+  
+      error_filename += "-q" + std::to_string(degree);
+
+      return error_filename;
+    }
 
   template <int dim>
   void ConjugateHeatTransferSolver<dim>::run(const unsigned int refinement)
@@ -1174,6 +1228,9 @@ namespace Cht
       }
     else
       newton_iteration(1e-12, 50, refinement, true, true);
+
+    make_error_table();
+
   }
 
   template class ConjugateHeatTransferSolver<2>;
