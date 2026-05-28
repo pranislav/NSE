@@ -1150,6 +1150,11 @@ namespace Cht
   template <int dim>
   void ConjugateHeatTransferSolver<dim>::make_error_table()
     {
+        
+      convergence_table.set_scientific("L2_velocity", true);
+      convergence_table.set_scientific("L2_pressure", true);
+      convergence_table.set_scientific("H1_velocity", true);
+      
       std::string error_filename = make_error_filename();
       std::ofstream org_mode_table(error_filename + ".org");
       convergence_table.write_text(org_mode_table, TableHandler::TextOutputFormat::org_mode_table);
@@ -1158,10 +1163,6 @@ namespace Cht
       convergence_table.set_precision("L2_velocity", 3);
       convergence_table.set_precision("L2_pressure", 3);
       convergence_table.set_precision("H1_velocity", 3);
-  
-      convergence_table.set_scientific("L2_velocity", true);
-      convergence_table.set_scientific("L2_pressure", true);
-      convergence_table.set_scientific("H1_velocity", true);
   
       convergence_table.set_tex_caption("cells", "\\# cells");
       convergence_table.set_tex_caption("dofs", "\\# dofs");
