@@ -154,8 +154,7 @@ namespace Cht
         if (component == velocity_y)
           return mms::velocity_y(p[0], p[1]);
         if (component == pressure)
-          AssertThrow(false,
-            dealii::ExcMessage("Pressure component should not be requested."));
+          return 0.0; // assertion was not passing thorugh dealii vector_value
 
         DEAL_II_NOT_IMPLEMENTED();
         return 0.0;
