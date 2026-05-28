@@ -18,9 +18,9 @@ PLAN:
 + spocitat rhs with SymPy
 + implementovat triedy pre presne riesenie a rhs
 + BC na zaklade presneho riesenia (ako to treatuju v step-7?)
-- pocitanie erroru, ukladanie vysledkov (tiez nastudovat zo step-7)
++ pocitanie erroru, ukladanie vysledkov (tiez nastudovat zo step-7)
 - vyhodnotit a vyplotit convergence rates
-- moznost zbildit to bez mms
++ moznost zbildit to bez mms
 + automatizacia? pridat manufactured solution do case-filu
 
 codex: 

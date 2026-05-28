@@ -4,6 +4,9 @@ TODO
 - pridat vypisovacky aj na teplotu
 - spomenut explicitne v readme ake rovnice to riesi
 - ako spustat generate do README
+- compute_errors - zmenit specifikaciu tlakovej komponenty z dim na pressure(enum)
+- enum for block indices?
+- case files refinement cycles je ich o jeden viac
 
 otazky
 - material_data? it?
