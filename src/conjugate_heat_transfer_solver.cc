@@ -1017,11 +1017,53 @@ namespace Cht
                              solution_names,
                              DataOut<dim>::type_dof_data,
                              data_component_interpretation);
+
+    BlockVector<double> flow_error;
+    if (config.use_mms)
+      {
+        flow_error.reinit(flow_solution);
+        VectorTools::interpolate(dof_handler,
+                                 Cht::MMS::Solution<dim>(),
+                                 flow_error);
+
+        BlockVector<double> normalized_flow_solution(flow_solution);
+        const double        mean_pressure = VectorTools::compute_mean_value(
+          dof_handler,
+          QGauss<dim>(degree + 2),
+          normalized_flow_solution,
+          dim);
+        normalized_flow_solution.block(1).add(-mean_pressure);
+
+        flow_error -= normalized_flow_solution;
+
+        std::vector<std::string> error_names(dim, "velocity_error");
+        error_names.emplace_back("pressure_error");
+        data_out.add_data_vector(flow_error,
+                                 error_names,
+                                 DataOut<dim>::type_dof_data,
+                                 data_component_interpretation);
+      }
+
+    Vector<double> temperature_error;
     if (temperature_solution.size() == temperature_dof_handler.n_dofs() &&
         temperature_dof_handler.n_dofs() > 0)
-      data_out.add_data_vector(temperature_dof_handler,
-                               temperature_solution,
-                               "temperature");
+      {
+        data_out.add_data_vector(temperature_dof_handler,
+                                 temperature_solution,
+                                 "temperature");
+
+        if (config.use_mms)
+          {
+            temperature_error.reinit(temperature_solution.size());
+            VectorTools::interpolate(temperature_dof_handler,
+                                     Cht::MMS::TemperatureSolution<dim>(),
+                                     temperature_error);
+            temperature_error -= temperature_solution;
+            data_out.add_data_vector(temperature_dof_handler,
+                                     temperature_error,
+                                     "temperature_error");
+          }
+      }
     data_out.build_patches();
 
     std::ofstream output(output_directory + "/" + case_tag() + "_ref" +
