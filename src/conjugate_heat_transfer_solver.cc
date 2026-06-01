@@ -1272,7 +1272,8 @@ namespace Cht
     else
       newton_iteration(1e-12, 50, refinement, true, true);
 
-    make_error_table();
+    if (config.use_mms)
+      make_error_table();
 
   }
 
