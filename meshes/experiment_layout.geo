@@ -87,10 +87,10 @@ Plane Surface(500) = {500};
 // ---------------- PHYSICAL GROUPS ----------------
 
 // Boundaries
-Physical Curve(10) = {10}; //bottom
-Physical Curve(20) = {11,18,30};     // left
-Physical Curve(30) = {23}; // top
-Physical Curve(40) = {24,20,9}; // right
+Physical Curve(10) = {30};              // left inlet, fluid segment only
+Physical Curve(20) = {10, 11, 18, 20, 9}; // exterior solid boundary
+Physical Curve(30) = {23};              // top
+Physical Curve(40) = {24};              // right outlet, fluid segment only
 
 // Materials
 Physical Surface(1) = {100};         // insulator + blade
@@ -100,6 +100,8 @@ Physical Surface(2) = {200,300};     // brass left + right
 Physical Surface(3) = {500};
 
 // ---------------- MESH ----------------
+Mesh.CharacteristicLengthMax = 0.25;
+Mesh.CharacteristicLengthMin = 0.05;
 Mesh.RecombineAll = 1;
 Mesh.RecombinationAlgorithm = 2;
 Mesh.SaveAll = 0;
