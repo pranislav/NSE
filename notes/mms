@@ -13,6 +13,8 @@ method of manufactured solutions
 
 ISSUE: constant H1, higher L2_velocity convergence rate
 https://chatgpt.com/share/6a1861ff-5464-83eb-94ca-1f364b526f6d
+- output also gradients (both analytical and computed)
+- should the L2 for velocity have same slope as for pressure for NSE? What's the theory here?
 
 
 PLAN:

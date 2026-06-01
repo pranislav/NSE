@@ -7,6 +7,7 @@ TODO
 - compute_errors - zmenit specifikaciu tlakovej komponenty z dim na pressure(enum)
 - enum for block indices?
 - case files refinement cycles je ich o jeden viac
+- implement no-penetration bc option pre vodnu hladinu
 
 otazky
 - material_data? it?
