@@ -30,6 +30,6 @@ subsection Materials
 end
 
 subsection Boundary conditions
-  set Velocity Dirichlet = 10:parabolic:0:1:0.1; 40:parabolic:0:1:0.1; 30:constant:1:0:0
+  set Velocity Dirichlet = 10:parabolic:0:1:0.1; 30:constant:1:0:0
   set Temperature Dirichlet = 10:10.0; 20:20.0; 30:80.0
 end
