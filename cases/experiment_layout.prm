@@ -1,0 +1,35 @@
+subsection Mesh
+  set File = ../meshes/experiment_layout.msh
+end
+
+subsection Solver
+  set Reynolds number = 100
+  set Gamma = 1.0
+  set Polynomial degree = 1
+  set Refinement cycles = 2
+  set Use MMS = false
+end
+
+subsection Materials
+  set Ids = 1, 2, 3
+
+  subsection Material 1
+    set Kind = solid
+    set Thermal diffusivity = 0.5
+  end
+
+  subsection Material 2
+    set Kind = solid
+    set Thermal diffusivity = 5.0
+  end
+
+  subsection Material 3
+    set Kind = fluid
+    set Thermal diffusivity = 1.0
+  end
+end
+
+subsection Boundary conditions
+  set Velocity Dirichlet = 10:parabolic:0:1:0.1; 40:parabolic:0:1:0.1; 30:constant:1:0:0
+  set Temperature Dirichlet = 10:10.0; 20:20.0; 30:80.0
+end
