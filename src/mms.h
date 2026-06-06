@@ -46,26 +46,33 @@ namespace Cht
         return mms::pressure(p[0], p[1]);
       }
 
-      virtual dealii::Tensor<1, dim> gradient(const dealii::Point<dim> &p,
-                              const unsigned int        component = 0) const override
-        {
-          AssertThrow(component < dim + 1,
-                      dealii::ExcIndexRange(component, 0, dim + 1));
+      virtual dealii::Tensor<1, dim> gradient(
+        const dealii::Point<dim> &p,
+        const unsigned int        component = 0) const override
+      {
+        AssertThrow(component < dim + 1,
+                    dealii::ExcIndexRange(component, 0, dim + 1));
 
-          dealii::Tensor<1, 2> return_value;
-          
-          if (component == velocity_x)
+        dealii::Tensor<1, 2> return_value;
+
+        if (component == velocity_x)
+          {
             return_value[0] = mms::grad_x_velocity_x(p[0], p[1]);
             return_value[1] = mms::grad_y_velocity_x(p[0], p[1]);
-          if (component == velocity_y)
+          }
+        else if (component == velocity_y)
+          {
             return_value[0] = mms::grad_x_velocity_y(p[0], p[1]);
-            return_value[1] = mms::grad_y_velocity_x(p[0], p[1]);
-          if (component == pressure)
+            return_value[1] = mms::grad_y_velocity_y(p[0], p[1]);
+          }
+        else if (component == pressure)
+          {
             return_value[0] = mms::grad_x_pressure(p[0], p[1]);
             return_value[1] = mms::grad_y_pressure(p[0], p[1]);
+          }
 
-          return return_value;
-        }
+        return return_value;
+      }
     };
 
     template <int dim>
