@@ -1,7 +1,7 @@
 method of manufactured solutions
 - right quadrature formula?
 - aky convergence rate tam ma byt?
-- chcem aj delta solution (zobrazit skutocny error v paraview)
++ chcem aj delta solution (zobrazit skutocny error v paraview)
 - four characteristics of chosen solution function
 
 - najskor stvorcovy mesh len s kvapalinou
@@ -13,8 +13,8 @@ method of manufactured solutions
 
 ISSUE: constant H1, higher L2_velocity convergence rate
 https://chatgpt.com/share/6a1861ff-5464-83eb-94ca-1f364b526f6d
-- output also gradients (both analytical and computed)
-- should the L2 for velocity have same slope as for pressure for NSE? What's the theory here?
++ output also gradients (both analytical and computed) | not needed anymore
++ should the L2 for velocity have same slope as for pressure for NSE? What's the theory here? | yes
 
 
 PLAN:
@@ -26,7 +26,7 @@ PLAN:
 + implementovat triedy pre presne riesenie a rhs
 + BC na zaklade presneho riesenia (ako to treatuju v step-7?)
 + pocitanie erroru, ukladanie vysledkov (tiez nastudovat zo step-7)
-- vyhodnotit a vyplotit convergence rates
++ vyhodnotit a vyplotit convergence rates
 + moznost zbildit to bez mms
 + automatizacia? pridat manufactured solution do case-filu
 
@@ -42,6 +42,6 @@ codex:
   + There is no cases/mms.prm; only heat_exchanger.prm and pipe.prm exist.
   + No error computation against exact solution yet: missing VectorTools::integrate_difference /
     L2/H1 norms / pressure norm.
-  - No convergence-rate table/plot automation.
-  - No output of actual error fields for ParaView, which is also listed in your notes in notes/
+  + No convergence-rate table/plot automation.
+  + No output of actual error fields for ParaView, which is also listed in your notes in notes/
     mms:4.
