@@ -968,9 +968,6 @@ namespace Cht
               {
                 update_temperature_field();
                 output_results(refinement_n, line_search_n);
-
-                if (current_res <= tolerance)
-                  process_solution(refinement_n);
               }
           }
         
@@ -1087,35 +1084,6 @@ namespace Cht
     std::ofstream output(output_directory + "/mesh_" + mesh_stem + "_ref" +
                          std::to_string(refinement_cycle) + ".vtu");
     grid_out.write_vtu(triangulation, output);
-  }
-
-  template <int dim>
-  void ConjugateHeatTransferSolver<dim>::process_solution(unsigned int refinement)
-  {
-    std::filesystem::create_directories(output_directory);
-
-    std::ofstream f(output_directory + "/" + case_tag() + "_ref" +
-                    std::to_string(refinement) + "-line.txt");
-    f << "# y u_x u_y" << std::endl;
-
-    Point<dim> p;
-    p[0] = 0.5;
-    p[1] = 0.5;
-
-    f << std::scientific;
-
-    for (unsigned int i = 0; i <= 100; ++i)
-      {
-        p[dim - 1] = i / 100.0;
-
-        Vector<double> tmp_vector(dim + 1);
-        VectorTools::point_value(dof_handler, flow_solution, p, tmp_vector);
-        f << p[dim - 1];
-
-        for (int j = 0; j < dim; ++j)
-          f << ' ' << tmp_vector(j);
-        f << std::endl;
-      }
   }
 
   template <int dim>

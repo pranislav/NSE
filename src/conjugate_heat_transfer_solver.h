@@ -77,7 +77,6 @@ namespace Cht
     void mark_cells_for_global_refinement();
     void execute_refinement();
     void refine_mesh(unsigned int refinement_cycle);
-    void process_solution(unsigned int refinement);
     void compute_errors(const unsigned int cycle);
     void output_results(const unsigned int refinement_cycle,
                         const unsigned int newton_step) const;
