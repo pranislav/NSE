@@ -85,7 +85,8 @@ namespace Cht
                           const unsigned int max_n_line_searches,
                           const unsigned int max_n_refinements,
                           const bool         is_initial_step,
-                          const bool         output_result);
+                          const bool         output_result,
+                          const bool         compute_mms_errors);
     void compute_initial_guess(double step_size);
     std::string case_tag() const;
     static std::string format_compact_double(double value);

@@ -902,7 +902,8 @@ namespace Cht
     const unsigned int max_n_line_searches,
     const unsigned int max_n_refinements,
     const bool         is_initial_step,
-    const bool         output_result)
+    const bool         output_result,
+    const bool         compute_mms_errors)
   {
     bool first_step = is_initial_step;
 
@@ -971,7 +972,7 @@ namespace Cht
               }
           }
         
-        if (config.use_mms)
+        if (config.use_mms && compute_mms_errors)
           compute_errors(refinement_n);
         
         if (refinement_n < max_n_refinements)
@@ -991,7 +992,7 @@ namespace Cht
         viscosity = 1.0 / Re;
         std::cout << "Searching for initial guess with Re = " << Re
                   << std::endl;
-        newton_iteration(1e-12, 50, 0, is_initial_step, false);
+        newton_iteration(1e-12, 50, 0, is_initial_step, false, false);
         is_initial_step = false;
       }
   }
@@ -1239,10 +1240,10 @@ namespace Cht
         std::cout << "Found initial guess." << std::endl;
         std::cout << "Computing solution with target Re = " << Re << std::endl;
         viscosity = 1.0 / Re;
-        newton_iteration(1e-12, 50, refinement, false, true);
+        newton_iteration(1e-12, 50, refinement, false, true, true);
       }
     else
-      newton_iteration(1e-12, 50, refinement, true, true);
+      newton_iteration(1e-12, 50, refinement, true, true, true);
 
     if (config.use_mms)
       make_error_table();
