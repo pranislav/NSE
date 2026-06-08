@@ -16,16 +16,20 @@ int main(int argc, char **argv)
 
       std::string output_directory = ".";
       bool        save_mesh_output = false;
+      bool        output_partial_solutions = false;
       std::string case_file        = "../cases/heat_exchanger.prm";
       ConjugateHeatTransferSolver<dim>::RefinementMode refinement_mode =
           ConjugateHeatTransferSolver<dim>::RefinementMode::adaptive_refinement;
 
       const auto print_help = [&]() {
         std::cout << "Usage: cht_solver [--case FILE] [--output-dir DIR] "
-                     "[--save-mesh] [--help]\n"
+                    "[--save-mesh] [-p|--output-partial-solutions] "
+                    "[--help]\n"
                   << "  --case FILE         Case file to read\n"
                   << "  --output-dir DIR    Output directory (default: .)\n"
                   << "  --save-mesh         Save mesh after each refinement\n"
+                  << "  -p, --output-partial-solutions\n"
+                  << "                      Write intermediate Newton outputs\n"
                   << "  --global-refinement global instead of adaptive grid ref.\n"
                   << "  --help              Show this message\n";
       };
@@ -48,6 +52,9 @@ int main(int argc, char **argv)
             }
           else if (argument == "--save-mesh")
             save_mesh_output = true;
+          else if (argument == "-p" ||
+                   argument == "--output-partial-solutions")
+            output_partial_solutions = true;
           else if (argument == "--global-refinement")
             {
               refinement_mode = ConjugateHeatTransferSolver<dim>::global_refinement;
@@ -68,6 +75,7 @@ int main(int argc, char **argv)
       ConjugateHeatTransferSolver<dim> solver(case_config,
                                             output_directory,
                                             save_mesh_output,
+                                            output_partial_solutions,
                                             refinement_mode);
       solver.run(case_config.refinement_cycles);
     }

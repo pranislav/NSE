@@ -36,6 +36,7 @@ namespace Cht
     ConjugateHeatTransferSolver(const CaseConfig  &config,
                                 const std::string &output_directory,
                                 const bool         save_mesh_output,
+                                const bool         output_partial_solutions,
                                 const RefinementMode refinement_mode);
 
     void run(const unsigned int refinement);
@@ -99,6 +100,7 @@ namespace Cht
     const unsigned int                   degree;
     const std::string                    output_directory;
     const bool                           save_mesh_output;
+    const bool                           output_partial_solutions;
     std::vector<dealii::types::global_dof_index> dofs_per_block;
     std::map<dealii::types::boundary_id, BoundaryExtent> boundary_extents;
 

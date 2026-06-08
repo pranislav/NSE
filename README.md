@@ -32,6 +32,7 @@ Useful options:
 - `--case <file>` selects a case file. Defaults to `../cases/heat_exchanger.prm`.
 - `--output-dir <path>` selects where result files are written.
 - `--save-mesh` writes the mesh after each refinement cycle.
+- `-p`, `--output-partial-solutions` writes intermediate Newton-step output.
 - `--global-refinement` uses uniform global refinement instead of adaptive
   refinement.
 
@@ -151,10 +152,14 @@ cd build
 ./cht_solver --case ../cases/mms_deg2.prm --global-refinement --output-dir ../solns/mms_tables_deg2
 ```
 
-When `Use MMS = true`, VTK output includes `velocity_error`, `pressure_error`,
-and `temperature_error` fields. The solver also computes convergence data for
-`L2_velocity`, `L2_pressure`, and `H1_velocity` after each refinement cycle and
-writes both Org and LaTeX tables:
+When `Use MMS = true`, VTK output includes `velocity_error`,
+`pressure_error`, and `temperature_error` fields. The solver also computes
+convergence data for `L2_velocity`, `L2_pressure`, and `H1_velocity` after each
+refinement cycle and writes both Org and LaTeX tables.
+
+By default, the solver writes only the final converged solution from the last
+refinement cycle. Use `-p` or `--output-partial-solutions` to write the
+intermediate Newton-step outputs.
 
 ```text
 error-<adaptive|global>-q<degree>.org

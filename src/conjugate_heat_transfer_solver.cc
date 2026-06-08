@@ -143,6 +143,7 @@ namespace Cht
     const CaseConfig  &config,
     const std::string &output_directory,
     const bool         save_mesh_output,
+    const bool         output_partial_solutions,
     const RefinementMode refinement_mode)
     : config(config)
     , refinement_mode(refinement_mode)
@@ -151,6 +152,7 @@ namespace Cht
     , degree(config.degree)
     , output_directory(output_directory)
     , save_mesh_output(save_mesh_output)
+    , output_partial_solutions(output_partial_solutions)
     , triangulation(Triangulation<dim>::maximum_smoothing)
     , fe_fluid(FE_Q<dim>(degree + 1) ^ dim, FE_Q<dim>(degree))
     , fe_solid(FE_Nothing<dim>(), dim, FE_Nothing<dim>(), 1)
@@ -960,7 +962,9 @@ namespace Cht
                 ++line_search_n;
               }
 
-            if (output_result)
+            if (output_result &&
+                (output_partial_solutions ||
+                 (refinement_n == max_n_refinements && current_res <= tolerance)))
               {
                 update_temperature_field();
                 output_results(refinement_n, line_search_n);
