@@ -10,6 +10,10 @@ method of manufactured solutions
 + implementovat componnent ako enum, cize u_x, u_y, p namiesto 0, 1, 2
 + brat boundary conditions from mms ak je mms, nie z case filu. prip. case file pre mms, ktory urci, ze mms sa beru odjinud
 
+- nech sa spocita aj variance k tym slopom a nech sa zaznamenaju tie vysledky do suboru (teraz su len nakreslene do plotu)
+- spocitat aj lokalne conv rate differencie a zaznamenat
+
+- stale nie som uplne spokojny, lebo tie hodnoty su niekde aj o pol cisla vyssie ako hovori teoria, pricom podla plotov vyzera, ze tie hodnoty maju dost malu varianciu (este to spocitam a overim). Takze by som rad zistil, aku odchylku teoria dovoluje, ako velmi sa tie hodnoty lisia od teorie ludom v praxi, pripadne si precital nejake odvodenie tych vzorcov a ake tam robia predpoklady.
 
 ISSUE: constant H1, higher L2_velocity convergence rate
 https://chatgpt.com/share/6a1861ff-5464-83eb-94ca-1f364b526f6d
