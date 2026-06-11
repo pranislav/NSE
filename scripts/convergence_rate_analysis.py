@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import argparse
+import math
 from pathlib import Path
 
 import numpy as np
@@ -73,20 +74,26 @@ def fit_convergence_rate(h: np.ndarray, error: np.ndarray):
     log_h = np.log(h)
     log_e = np.log(error)
 
-    slope, intercept = np.polyfit(log_h, log_e, 1)
+    coef, cov = np.polyfit(log_h, log_e, deg=1, cov=True)
+
+    slope = coef[0]
+    intercept = coef[1]
 
     fitted = np.exp(intercept) * h ** slope
 
-    return slope, fitted
+    slope_std = np.sqrt(cov[0, 0])
+
+    return slope, fitted, slope_std
 
 
-def make_plot(
+def make_plot_and_log_rates(
     h,
     error,
     quantity_name,
     source_path,
+    rates_file
 ):
-    slope, fitted = fit_convergence_rate(h, error)
+    slope, fitted, slope_std = fit_convergence_rate(h, error)
 
     plt.figure(figsize=(6, 5))
 
@@ -120,8 +127,26 @@ def make_plot(
     plt.close()
 
     print(f"Saved: {output_path}")
-    print(f"  slope = {slope:.6f}")
+    rate_with_uncertainty = format_with_uncertainty(slope, slope_std)
+    rates_file.write(f"{quantity_name}: {rate_with_uncertainty}\n")
+    print(f"Estimated convergence rate for {quantity_name}: {rate_with_uncertainty}")
 
+def format_with_uncertainty(value, error):
+    if error <= 0:
+        return f"{value}"
+
+    exponent = math.floor(math.log10(abs(error)))
+    first_digit = error / 10**exponent
+
+    # 2 significant digits if leading digit is 1 or 2
+    sig_digits = 2 if first_digit < 3 else 1
+
+    decimals = -(exponent - (sig_digits - 1))
+
+    value_rounded = round(value, decimals)
+    error_rounded = round(error, decimals)
+
+    return f"{value_rounded:.{max(0, decimals)}f} ± {error_rounded:.{max(0, decimals)}f}"
 
 def main():
     parser = argparse.ArgumentParser(
@@ -136,6 +161,8 @@ def main():
 
     args = parser.parse_args()
 
+    rates_file = open(f"{args.table.parent}/convergence_rates.txt", "w")
+
     df = parse_org_table(args.table)
 
     h = infer_h(df["cells"].to_numpy())
@@ -146,11 +173,12 @@ def main():
     ]
 
     for col in error_columns:
-        make_plot(
+        make_plot_and_log_rates(
             h=h,
             error=df[col].values,
             quantity_name=col,
             source_path=args.table,
+            rates_file=rates_file,
         )
 
 
