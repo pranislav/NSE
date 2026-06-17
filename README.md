@@ -1,8 +1,26 @@
-# NSE Conjugate Heat Transfer Example
+# NSE Conjugate Heat Transfer
 
-This repository contains a deal.II-based 2D flow and temperature solver.
+This repository contains a FEM-based 2D time-independent conjugate heat transfer solver with incompressible flow using deal-II library.
+It solves for a velocity field on fluid areas and temperature field on whole mesh.
 It was originally based on deal.II step-57.
-The current setup models incompressible flow in a channel with solid walls and a separate temperature solve over the full fluid-solid domain.
+
+**Governing equations:**
+
+Incompressible steady-state Navier-Stokes equations:
+
+`(u · ∇)u − ν∆u + ∇p − f = 0`,
+
+`∇ · u = 0`,
+
+where u is the velocity, ν is viscosity, p is pressure and f external body force.
+
+Steady advection-diffusion:
+
+`u · ∇T − κ∆T − s = 0`,
+
+where T is temperature, κ is thermal diffusivity and s is a source term.
+
+
 
 ## Build
 
@@ -51,7 +69,7 @@ cd build
 If `--output-dir` is omitted, output files are written to the current working directory.
 Mesh outputs saved with `--save-mesh` are written after each refinement and are
 named from the input mesh stem plus the refinement count, for example
-`heat_exchanger_ref2.vtu`.
+`heat_exchanger_ref2.vtk`.
 
 ## Case Files
 
@@ -62,17 +80,19 @@ Simulation setup is now split into:
 
 A case file defines:
 
+- solver parameters (Reynolds number, polynomial degree of basis functions, number of refinements and more)
 - which mesh to load
-- one subsection per material ID with its kind and properties
+- material type (fluid/solid) and thermal diffusivity of defined mesh areas
 - velocity boundary conditions
-- temperature Dirichlet boundary conditions
+- temperature boundary conditions
 
 Current examples:
 
-- [`cases/heat_exchanger.prm`](cases/heat_exchanger.prm)
-- [`cases/pipe.prm`](cases/pipe.prm)
-- [`cases/mms.prm`](cases/mms.prm)
-- [`cases/mms_deg2.prm`](cases/mms_deg2.prm)
+- [`cases/pipe.prm`](cases/pipe.prm) - simple pipe with solid walls
+- [`cases/heat_exchanger.prm`](cases/heat_exchanger.prm) - two parallel tubes with flow in opposite direction, thermally connected, with one hot inflow and one cold inflow
+- [`experiment_layout.prm`](cases/experiment_layout.prm) - a particular experiment geometry
+- [`cases/mms.prm`](cases/mms.prm) - case for code verification by method of manufactured solutions (MMS)
+- [`cases/mms_deg<n>.prm`](cases/mms_deg2.prm) where *n* in (2, 3) - MMS of higher degree
 
 ## Case File Format
 
@@ -121,7 +141,7 @@ Velocity entry format:
 No-slip boundaries are represented as zero-valued constant velocity Dirichlet
 entries, one per constrained velocity component.
 
-## Manufactured Solution Verification
+## Code Verification by Method of Manufactured Solutions
 
 The solver has a method of manufactured solutions (MMS) mode for verifying the
 Navier-Stokes solver on the unit square (extension of MMS for the temperature part is in progress TODO). Enable it from a
@@ -140,16 +160,16 @@ The current manufactured fields are defined in [`scripts/expressions_mms.py`](sc
 - `T = cos(2 pi x) sin(pi y)`
 
 The generated C++ functions live in [`src/mms_generated.h`](src/mms_generated.h)
-and are wrapped for deal.II in [`src/mms.h`](src/mms.h). MMS mode replaces the
-flow and temperature boundary values with the manufactured solution and adds the
-corresponding momentum and temperature source terms.
+and are wrapped for deal.II in [`src/mms.h`](src/mms.h).
+Note that in case of changing the manufactured solution expressions it is necessary to also regenerate the `mms_generated.h` by running `python3 scripts/generate_mms.py`.
+MMS mode defines the flow and temperature boundary values in accordance with the manufactured solution (so any user-defined boundary conditions in case file will be overrode TODO verify experimentally). It also adds the corresponding momentum and temperature source terms in the assembly.
+It is recommended to run MMS mode with global refinement option so the convergence rates are more straightforward to compute.
 
-Example MMS runs:
+Example MMS run:
 
 ```bash
 cd build
-./cht_solver --case ../cases/mms.prm --global-refinement --output-dir ../solns/mms_tables
-./cht_solver --case ../cases/mms_deg2.prm --global-refinement --output-dir ../solns/mms_tables_deg2
+./cht_solver --case ../cases/mms.prm --global-refinement --output-dir ../solns/mms
 ```
 
 When `Use MMS = true`, VTK output includes `velocity_error`,
@@ -157,14 +177,15 @@ When `Use MMS = true`, VTK output includes `velocity_error`,
 convergence data for `L2_velocity`, `L2_pressure`, and `H1_velocity` after each
 refinement cycle and writes both Org and LaTeX tables.
 
-By default, the solver writes only the final converged solution from the last
-refinement cycle. Use `-p` or `--output-partial-solutions` to write the
-intermediate Newton-step outputs.
 
 ```text
 error-<adaptive|global>-q<degree>.org
 error-<adaptive|global>-q<degree>.tex
 ```
+
+By default, the solver writes only the final converged solution from the last
+refinement cycle. Use `-p` or `--output-partial-solutions` to write the
+intermediate Newton-step outputs.
 
 Generate or refresh the MMS expressions with:
 
@@ -181,3 +202,4 @@ python3 scripts/convergence_rate_analysis.py solns/mms_tables/error-global-q1.or
 ```
 
 The plotting script writes one PNG per error column next to the input table.
+Note that the script assumes global refinement option was used.
