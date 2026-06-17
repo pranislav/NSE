@@ -53,3 +53,7 @@ endif()
 deal_ii_initialize_cached_variables()
 project(${TARGET})
 deal_ii_invoke_autopilot()
+
+
+add_executable(export_exp_geometry scripts/export_exp_geometry.cc)
+deal_ii_setup_target(export_exp_geometry)
