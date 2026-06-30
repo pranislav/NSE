@@ -130,6 +130,107 @@ def make_plot_and_log_rates(
     rate_with_uncertainty = format_with_uncertainty(slope, slope_std)
     rates_file.write(f"{quantity_name}: {rate_with_uncertainty}\n")
     print(f"Estimated convergence rate for {quantity_name}: {rate_with_uncertainty}")
+    return rate_with_uncertainty
+
+
+def tex_escape(text):
+    return (
+        str(text)
+        .replace("\\", r"\textbackslash{}")
+        .replace("_", r"\_")
+        .replace("%", r"\%")
+        .replace("&", r"\&")
+        .replace("#", r"\#")
+    )
+
+
+def format_error(value):
+    return f"{value:.3e}"
+
+
+def format_local_rate(value):
+    if not np.isfinite(value):
+        return "--"
+    return f"{value:.2f}"
+
+
+def format_tex_rate_with_uncertainty(rate):
+    tex_rate = tex_escape(rate).replace("±", r"\pm")
+    return f"${tex_rate}$"
+
+
+def compute_local_rates(h, error):
+    rates = [None]
+    for previous_h, current_h, previous_error, current_error in zip(
+        h[:-1],
+        h[1:],
+        error[:-1],
+        error[1:],
+    ):
+        if previous_h <= 0 or current_h <= 0 or previous_error <= 0 or current_error <= 0:
+            rates.append(np.nan)
+            continue
+
+        rates.append(
+            np.log(previous_error / current_error)
+            / np.log(previous_h / current_h)
+        )
+
+    return rates
+
+
+def write_local_convergence_table(df, h, error_columns, fitted_rates, output_path):
+    local_rates = {
+        col: compute_local_rates(h, df[col].to_numpy())
+        for col in error_columns
+    }
+
+    column_format = "|r|r|r|" + "r|r|" * len(error_columns)
+    headers = ["cycle", r"\# cells", r"\# dofs"]
+    for col in error_columns:
+        quantity = tex_escape(col)
+        headers.extend([quantity, "rate"])
+
+    lines = [
+        r"\begin{table}[htbp]",
+        r"\centering",
+        rf"\begin{{tabular}}{{{column_format}}}",
+        r"\hline",
+        " & ".join(headers) + r" \\ \hline",
+    ]
+
+    for row_index, row in df.iterrows():
+        cells = [
+            f"{int(row['cycle'])}",
+            f"{int(row['cells'])}",
+            f"{int(row['dofs'])}",
+        ]
+
+        for col in error_columns:
+            cells.append(format_error(row[col]))
+            if row_index == 0:
+                cells.append("--")
+            else:
+                cells.append(format_local_rate(local_rates[col][row_index]))
+
+        lines.append(" & ".join(cells) + r" \\ \hline")
+
+    fitted_row = [
+        rf"\multicolumn{{3}}{{|r|}}{{fitted rate}}",
+    ]
+    for col in error_columns:
+        fitted_row.extend(["--", format_tex_rate_with_uncertainty(fitted_rates[col])])
+    lines.append(" & ".join(fitted_row) + r" \\ \hline")
+
+    lines.extend([
+        r"\end{tabular}",
+        r"\caption{Local convergence rates computed from adjacent refinement levels. The final row shows fitted rates with uncertainties from the log-log least-squares fit.}",
+        r"\end{table}",
+        "",
+    ])
+
+    output_path.write_text("\n".join(lines))
+    print(f"Saved: {output_path}")
 
 def format_with_uncertainty(value, error):
     if error <= 0:
@@ -161,8 +262,6 @@ def main():
 
     args = parser.parse_args()
 
-    rates_file = open(f"{args.table.parent}/convergence_rates.txt", "w")
-
     df = parse_org_table(args.table)
 
     h = infer_h(df["cells"].to_numpy())
@@ -172,14 +271,25 @@ def main():
         if col not in ["cycle", "cells", "dofs"]
     ]
 
-    for col in error_columns:
-        make_plot_and_log_rates(
-            h=h,
-            error=df[col].values,
-            quantity_name=col,
-            source_path=args.table,
-            rates_file=rates_file,
-        )
+    fitted_rates = {}
+    rates_path = args.table.parent / "convergence_rates.txt"
+    with rates_path.open("w") as rates_file:
+        for col in error_columns:
+            fitted_rates[col] = make_plot_and_log_rates(
+                h=h,
+                error=df[col].values,
+                quantity_name=col,
+                source_path=args.table,
+                rates_file=rates_file,
+            )
+
+    write_local_convergence_table(
+        df=df,
+        h=h,
+        error_columns=error_columns,
+        fitted_rates=fitted_rates,
+        output_path=args.table.parent / "convergence_rates.tex",
+    )
 
 
 if __name__ == "__main__":
