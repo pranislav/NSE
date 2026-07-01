@@ -1071,6 +1071,7 @@ namespace Cht
     std::ofstream output(output_directory + "/" + case_tag() + "_ref" +
                          std::to_string(refinement_cycle) + "_newt" +
                          std::to_string(newton_step) + ".vtk");
+    // output << std::setprecision(std::numeric_limits<double>::max_digits10);
     data_out.write_vtk(output);
 
   }
