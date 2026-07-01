@@ -1,0 +1,14 @@
+\begin{table}[htbp]
+\centering
+\begin{tabular}{|r|r|r|r|r|r|r|r|r|}
+\hline
+cycle & \# cells & \# dofs & L2\_velocity & rate & L2\_pressure & rate & H1\_velocity & rate \\ \hline
+0 & 25 & 633 & 1.886e-04 & -- & 8.651e-04 & -- & 6.613e-03 & -- \\ \hline
+1 & 100 & 2363 & 8.138e-06 & 4.53 & 1.180e-04 & 2.87 & 5.976e-04 & 3.47 \\ \hline
+2 & 400 & 9123 & 3.287e-07 & 4.63 & 1.531e-05 & 2.95 & 5.392e-05 & 3.47 \\ \hline
+3 & 1600 & 35843 & 1.450e-08 & 4.50 & 1.944e-06 & 2.98 & 5.567e-06 & 3.28 \\ \hline
+4 & 6400 & 142083 & 7.671e-10 & 4.24 & 2.447e-07 & 2.99 & 6.495e-07 & 3.10 \\ \hline
+\multicolumn{3}{|r|}{fitted rate} & -- & $4.49 \pm 0.04$ & -- & $2.950 \pm 0.013$ & -- & $3.34 \pm 0.05$ \\ \hline
+\end{tabular}
+\caption{Local convergence rates computed from adjacent refinement levels. The final row shows fitted rates with uncertainties from the log-log least-squares fit.}
+\end{table}
