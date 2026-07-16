@@ -279,7 +279,7 @@ def main() -> None:
             f"{field}\nRe {re_value}",
             ha="center",
             va="center",
-            rotation=90,
+            # rotation=90,
             fontsize=24,
             fontweight="bold",
         )
