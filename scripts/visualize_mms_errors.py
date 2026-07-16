@@ -204,16 +204,19 @@ def plot_panel(
     data: VtkData,
     triangles: np.ndarray,
     values: np.ndarray,
-    title: str,
 ) -> None:
     triangulation = mtri.Triangulation(data.points[:, 0], data.points[:, 1], triangles)
     image = ax.tripcolor(triangulation, values, shading="gouraud", cmap="coolwarm")
-    ax.set_title(title, fontsize=11)
     ax.set_aspect("equal", adjustable="box")
+    ax.set_xlim(float(np.min(data.points[:, 0])), float(np.max(data.points[:, 0])))
+    ax.set_ylim(float(np.min(data.points[:, 1])), float(np.max(data.points[:, 1])))
+    ax.margins(0.0)
     ax.set_xticks([])
     ax.set_yticks([])
-    colorbar = fig.colorbar(image, ax=ax, fraction=0.046, pad=0.02)
-    colorbar.ax.tick_params(labelsize=8)
+    for spine in ax.spines.values():
+        spine.set_visible(False)
+    colorbar = fig.colorbar(image, ax=ax, fraction=0.046, pad=0.01)
+    colorbar.ax.tick_params(labelsize=11)
 
 
 def folder_for(solns_dir: Path, re_value: int, degree: int) -> Path:
@@ -236,7 +239,7 @@ def main() -> None:
             vtk_data[(re_value, degree)] = data
             triangles[(re_value, degree)] = make_triangles(data.cells)
 
-    column_titles = ["solution", "error deg1", "error deg2", "error deg3"]
+    column_titles = [f"solution deg{args.solution_degree}", "error deg1", "error deg2", "error deg3"]
     row_specs = [
         ("velocity", 100),
         ("velocity", 7500),
@@ -244,22 +247,42 @@ def main() -> None:
         ("pressure", 7500),
     ]
 
-    fig, axes = plt.subplots(4, 4, figsize=(28, 22), constrained_layout=True)
-    fig.suptitle("MMS solutions and errors", fontsize=18)
-
-    for col, title in enumerate(column_titles):
-        axes[0, col].set_title(title, fontsize=13)
+    fig, axes = plt.subplots(4, 4, figsize=(28, 22), constrained_layout=False)
+    fig.subplots_adjust(left=0.08, right=0.985, bottom=0.035, top=0.88, wspace=0.18, hspace=0.08)
+    fig.suptitle("MMS solutions and errors", fontsize=34, y=0.975)
 
     for row, (field, re_value) in enumerate(row_specs):
-        axes[row, 0].set_ylabel(f"{field}\nRe {re_value}", fontsize=13)
         for col in range(4):
             degree = args.solution_degree if col == 0 else col
             data = vtk_data[(re_value, degree)]
             values = field_values(data, field, error=col != 0)
-            panel_title = column_titles[col]
-            if col == 0:
-                panel_title = f"{panel_title} deg{degree}"
-            plot_panel(fig, axes[row, col], data, triangles[(re_value, degree)], values, panel_title)
+            plot_panel(fig, axes[row, col], data, triangles[(re_value, degree)], values)
+
+    fig.canvas.draw()
+    for col, title in enumerate(column_titles):
+        bbox = axes[0, col].get_position()
+        fig.text(
+            (bbox.x0 + bbox.x1) / 2,
+            0.905,
+            title,
+            ha="center",
+            va="bottom",
+            fontsize=24,
+            fontweight="bold",
+        )
+
+    for row, (field, re_value) in enumerate(row_specs):
+        bbox = axes[row, 0].get_position()
+        fig.text(
+            0.035,
+            (bbox.y0 + bbox.y1) / 2,
+            f"{field}\nRe {re_value}",
+            ha="center",
+            va="center",
+            rotation=90,
+            fontsize=24,
+            fontweight="bold",
+        )
 
     args.output.parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(args.output, dpi=args.dpi)
