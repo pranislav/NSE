@@ -54,6 +54,30 @@ deal_ii_initialize_cached_variables()
 project(${TARGET})
 deal_ii_invoke_autopilot()
 
+if(UNIX AND NOT APPLE)
+  set_target_properties(${TARGET} PROPERTIES
+    BUILD_RPATH "\$ORIGIN/lib"
+    INSTALL_RPATH "\$ORIGIN/lib"
+    )
+  target_link_options(${TARGET} PRIVATE "LINKER:--disable-new-dtags")
+
+  add_custom_target(bundle
+    COMMAND ${CMAKE_COMMAND}
+      -D "BUNDLE_EXECUTABLE=$<TARGET_FILE:${TARGET}>"
+      -D "BUNDLE_DIR=${CMAKE_BINARY_DIR}/bundle"
+      -D "BUNDLE_SYSTEM_LIBRARY_REGEX=${BUNDLE_SYSTEM_LIBRARY_REGEX}"
+      -P "${CMAKE_CURRENT_SOURCE_DIR}/cmake/bundle_shared_libraries.cmake"
+    DEPENDS ${TARGET}
+    COMMENT "Bundling ${TARGET} and its shared library dependencies"
+    VERBATIM
+    )
+else()
+  add_custom_target(bundle
+    COMMAND ${CMAKE_COMMAND} -E echo "The bundle target is only supported on Linux."
+    COMMAND ${CMAKE_COMMAND} -E false
+    )
+endif()
+
 
 add_executable(export_exp_geometry scripts/export_exp_geometry.cc)
 deal_ii_setup_target(export_exp_geometry)

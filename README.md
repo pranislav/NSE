@@ -34,6 +34,49 @@ cmake --build build
 The project expects a deal.II installation with `UMFPACK` enabled, as checked in
 [`CMakeLists.txt`](CMakeLists.txt).
 
+## Build a Portable Bundle
+
+On a Linux machine where deal.II and the other build dependencies are installed,
+configure the project and build the `bundle` target:
+
+```bash
+cmake -S . -B build
+cmake --build build --target bundle
+```
+
+This creates:
+
+```text
+build/bundle/
+  cht_solver
+  lib/
+```
+
+The `bundle` target copies the solver executable to `build/bundle/`, discovers
+its shared-library dependencies with `ldd`, and copies non-system libraries into
+`build/bundle/lib/`. This includes deal.II and other non-system runtime
+dependencies such as SuiteSparse, BLAS/LAPACK, Fortran runtime libraries, and
+C++ runtime libraries when they are resolved as non-system dependencies on the
+build machine.
+
+The executable is built with an RPATH containing `$ORIGIN/lib`, so after the
+bundle directory is copied to another Linux machine, `cht_solver` searches for
+its bundled libraries next to itself in `lib/`.
+
+The bundling step intentionally does not copy standard Linux system libraries
+such as `libc`, `libm`, `libpthread`, `librt`, `libdl`, `ld-linux`, and
+`linux-vdso`. The target machine therefore still needs a compatible Linux
+system and C library, but it does not need deal.II installed system-wide.
+
+Assumptions:
+
+- Bundling is supported on Linux only.
+- `ldd` must be available on the build machine.
+- `patchelf` is not required; RPATH is set from CMake.
+- Input case files and meshes are not embedded in the executable. Copy the
+  required files, for example `cases/` and `meshes/`, together with the bundle
+  or provide paths to equivalent files on the target machine.
+
 ## Run
 
 Run the executable from the `build/` directory and pass a case file:
@@ -53,6 +96,39 @@ Useful options:
 - `-p`, `--output-partial-solutions` writes intermediate Newton-step output.
 - `--global-refinement` uses uniform global refinement instead of adaptive
   refinement.
+
+## Run a Bundle on a Machine Without deal.II
+
+Copy the generated `build/bundle/` directory to the target Linux machine. Also
+copy the input files needed by the selected case, usually the corresponding
+case file from `cases/` and mesh file from `meshes/`.
+
+Example layout on the target machine:
+
+```text
+run/
+  bundle/
+    cht_solver
+    lib/
+  cases/
+    heat_exchanger.prm
+  meshes/
+    heat_exchanger.msh
+```
+
+Run the bundled executable from `bundle/` or from any working directory:
+
+```bash
+cd run/bundle
+./cht_solver --case ../cases/heat_exchanger.prm --output-dir ../results/heat_exchanger
+```
+
+No `LD_LIBRARY_PATH` setting and no system-wide deal.II installation are needed
+for this bundled executable.
+
+If a copied case file contains relative mesh paths, keep the same relative
+layout used by the case file or edit the mesh path in the case file before
+running.
 
 ## Output Directory
 
