@@ -1,0 +1,25 @@
+  subsection Mesh
+    set File = ../meshes/square_finer.msh
+  end
+
+  subsection Solver
+    set Reynolds number = 100
+    set Gamma = 1.0
+    set Polynomial degree = 2
+    set Refinement cycles = 4
+    set Use MMS = true
+  end
+
+  subsection Materials
+    set Ids = 100
+
+    subsection Material 100
+      set Kind = fluid
+      set Thermal diffusivity = 1.0
+    end
+  end
+
+  subsection Boundary conditions
+    set Velocity Dirichlet =
+    set Temperature Dirichlet = 10:0.0; 20:0.0; 30:0.0; 40:0.0
+  end
