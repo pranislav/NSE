@@ -1,4 +1,9 @@
-build
+CMakeFiles
+cmake_install.cmake
+CMakeCache.txt
+compile_commands.json
+Makefile
+bundle
 .vscode
 compile_commands.json
 __pycache__
