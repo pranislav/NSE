@@ -2,14 +2,14 @@ MMS roadmap: finish by end of july
 
 conclude stage 1 (flow-only):
 	x check error clustering - already done.
-	- report to Marc too regular pressure error
+	+ report to Marc too regular pressure error
 	-wip try starting with finer mesh
-	- compiling problem with newest version
+	+ compiling problem with newest version
 		+ check compilation
 		+ update dealii
-		- check again
-		- report to Marc
-	- Marc: react to upper bound vs rate (if we divide the equations, we are left just with the delta h to some exponent - is the exponent why is the "<=" there?)
+		+ check again
+		+ report to Marc
+	x Marc: react to upper bound vs rate (if we divide the equations, we are left just with the delta h to some exponent - is the exponent why is the "<=" there?)
 	
 stage 2 (add temp):
 	-add source terms to assemble
