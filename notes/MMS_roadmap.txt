@@ -1,9 +1,9 @@
 MMS roadmap: finish by end of july
 
-conclude stage 1 (flow-only):
++ conclude stage 1 (flow-only):
 	x check error clustering - already done.
 	+ report to Marc too regular pressure error
-	-wip try starting with finer mesh
+	+ try starting with finer mesh
 	+ compiling problem with newest version
 		+ check compilation
 		+ update dealii
