@@ -975,7 +975,8 @@ namespace Cht
         if (config.use_mms && compute_mms_errors)
           {
             MmsErrors mms_errors = compute_errors(refinement_n);
-            output_results(refinement_n, line_search_n, mms_errors);
+            if (output_partial_solutions || refinement_n == max_n_refinements)
+              output_results(refinement_n, line_search_n, mms_errors);
           }
         
         if (refinement_n < max_n_refinements)
