@@ -18,6 +18,7 @@
 
 #include <array>
 #include <map>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -51,6 +52,35 @@ namespace Cht
       bool                    initialized;
     };
 
+    struct MmsErrors
+    {
+      dealii::Vector<float> velocity_L2_per_cell;
+      dealii::Vector<float> pressure_L2_per_cell;
+      dealii::Vector<float> velocity_H1_per_cell;
+
+      double velocity_L2 = 0.0;
+      double pressure_L2 = 0.0;
+      double velocity_H1 = 0.0;
+
+      MmsErrors() = default;
+
+      explicit MmsErrors(const unsigned int n_active_cells)
+      {
+        reinit(n_active_cells);
+      }
+
+      void reinit(const unsigned int n_active_cells)
+      {
+        velocity_L2_per_cell.reinit(n_active_cells);
+        pressure_L2_per_cell.reinit(n_active_cells);
+        velocity_H1_per_cell.reinit(n_active_cells);
+
+        velocity_L2 = 0.0;
+        pressure_L2 = 0.0;
+        velocity_H1 = 0.0;
+      }
+    };
+
     const MaterialData &material_data(const dealii::types::material_id material_id) const;
     bool cell_is_in_fluid_domain(
       const typename dealii::DoFHandler<dim>::cell_iterator &cell) const;
@@ -77,9 +107,10 @@ namespace Cht
     void mark_cells_for_global_refinement();
     void execute_refinement();
     void refine_mesh(unsigned int refinement_cycle);
-    void compute_errors(const unsigned int cycle);
+    MmsErrors compute_errors(const unsigned int cycle);
     void output_results(const unsigned int refinement_cycle,
-                        const unsigned int newton_step) const;
+                        const unsigned int newton_step,
+                        std::optional<MmsErrors> mms_errors=std::nullopt) const;
     void output_mesh(const unsigned int refinement_cycle) const;
     void newton_iteration(const double       tolerance,
                           const unsigned int max_n_line_searches,

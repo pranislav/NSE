@@ -973,7 +973,10 @@ namespace Cht
           }
         
         if (config.use_mms && compute_mms_errors)
-          compute_errors(refinement_n);
+          {
+            MmsErrors mms_errors = compute_errors(refinement_n);
+            output_results(refinement_n, line_search_n, mms_errors);
+          }
         
         if (refinement_n < max_n_refinements)
           refine_mesh(refinement_n + 1);
@@ -1000,7 +1003,9 @@ namespace Cht
   template <int dim>
   void ConjugateHeatTransferSolver<dim>::output_results(
     const unsigned int refinement_cycle,
-    const unsigned int newton_step) const
+    const unsigned int newton_step,
+    std::optional<typename ConjugateHeatTransferSolver<dim>::MmsErrors>
+      mms_errors) const
   {
     std::filesystem::create_directories(output_directory);
 
@@ -1044,6 +1049,19 @@ namespace Cht
                                  error_names,
                                  DataOut<dim>::type_dof_data,
                                  data_component_interpretation);
+
+        if (mms_errors)
+          {
+            data_out.add_data_vector(mms_errors->velocity_L2_per_cell,
+                                     "velocity_L2_cell_error",
+                                     DataOut<dim>::type_cell_data);
+            data_out.add_data_vector(mms_errors->pressure_L2_per_cell,
+                                     "pressure_L2_cell_error",
+                                     DataOut<dim>::type_cell_data);
+            data_out.add_data_vector(mms_errors->velocity_H1_per_cell,
+                                     "velocity_H1_cell_error",
+                                     DataOut<dim>::type_cell_data);
+          }
       }
 
     Vector<double> temperature_error;
@@ -1064,6 +1082,8 @@ namespace Cht
             data_out.add_data_vector(temperature_dof_handler,
                                      temperature_error,
                                      "temperature_error");
+                      
+            // TODO temperature_L2_per_cell
           }
       }
     data_out.build_patches();
@@ -1089,7 +1109,8 @@ namespace Cht
   }
 
   template <int dim>
-  void ConjugateHeatTransferSolver<dim>::compute_errors(const unsigned int cycle)
+  typename ConjugateHeatTransferSolver<dim>::MmsErrors
+    ConjugateHeatTransferSolver<dim>::compute_errors(const unsigned int cycle)
   {
     // Compute the mean pressure $\frac{1}{\Omega} \int_{\Omega} p(x) dx $
     // and then subtract it from each pressure coefficient. This will result
@@ -1106,50 +1127,52 @@ namespace Cht
     const ComponentSelectFunction<dim> velocity_mask(std::make_pair(0, dim),
                                                      dim + 1);
 
-    Vector<float> difference_per_cell(triangulation.n_active_cells());
+
+    MmsErrors mms_errors(triangulation.n_active_cells());
+
     VectorTools::integrate_difference(dof_handler,
                                       flow_solution,
                                       Cht::MMS::Solution<dim>(),
-                                      difference_per_cell,
+                                      mms_errors.velocity_L2_per_cell,
                                       QGauss<dim>(degree + 2),
                                       VectorTools::L2_norm,
                                       &velocity_mask);
 
-    const double Velocity_L2_error =
+    mms_errors.velocity_L2 =
       VectorTools::compute_global_error(triangulation,
-                                        difference_per_cell,
+                                        mms_errors.velocity_L2_per_cell,
                                         VectorTools::L2_norm);
 
     VectorTools::integrate_difference(dof_handler,
                                       flow_solution,
                                       Cht::MMS::Solution<dim>(),
-                                      difference_per_cell,
+                                      mms_errors.pressure_L2_per_cell,
                                       QGauss<dim>(degree + 2),
                                       VectorTools::L2_norm,
                                       &pressure_mask);
 
-    const double Pressure_L2_error =
+    mms_errors.pressure_L2 =
       VectorTools::compute_global_error(triangulation,
-                                        difference_per_cell,
+                                        mms_errors.pressure_L2_per_cell,
                                         VectorTools::L2_norm);
 
     VectorTools::integrate_difference(dof_handler,
                                       flow_solution,
                                       Cht::MMS::Solution<dim>(),
-                                      difference_per_cell,
+                                      mms_errors.velocity_H1_per_cell,
                                       QGauss<dim>(degree + 2),
                                       VectorTools::H1_norm,
                                       &velocity_mask);
 
-    const double Velocity_H1_error =
+    mms_errors.velocity_H1 =
       VectorTools::compute_global_error(triangulation,
-                                        difference_per_cell,
+                                        mms_errors.velocity_H1_per_cell,
                                         VectorTools::H1_norm);
 
     std::cout << std::endl
-              << "   Velocity L2 Error: " << Velocity_L2_error << std::endl
-              << "   Pressure L2 Error: " << Pressure_L2_error << std::endl
-              << "   Velocity H1 Error: " << Velocity_H1_error << std::endl;
+              << "   Velocity L2 Error: " << mms_errors.velocity_L2 << std::endl
+              << "   Pressure L2 Error: " << mms_errors.pressure_L2 << std::endl
+              << "   Velocity H1 Error: " << mms_errors.velocity_H1 << std::endl;
     
     const unsigned int n_active_cells = triangulation.n_active_cells();
     const unsigned int n_dofs         = dof_handler.n_dofs();
@@ -1157,10 +1180,12 @@ namespace Cht
     convergence_table.add_value("cycle", cycle);
     convergence_table.add_value("cells", n_active_cells);
     convergence_table.add_value("dofs", n_dofs);
-    convergence_table.add_value("L2_velocity", Velocity_L2_error);
-    convergence_table.add_value("L2_pressure", Pressure_L2_error);
-    convergence_table.add_value("H1_velocity", Velocity_H1_error);
+    convergence_table.add_value("L2_velocity", mms_errors.velocity_L2);
+    convergence_table.add_value("L2_pressure", mms_errors.pressure_L2);
+    convergence_table.add_value("H1_velocity", mms_errors.velocity_H1);
     // convergence_table.add_value("Linfty", Linfty_error);
+
+    return mms_errors;
   }
 
   template <int dim>
