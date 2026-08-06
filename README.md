@@ -203,3 +203,32 @@ python3 scripts/convergence_rate_analysis.py solns/mms_tables/error-global-q1.or
 
 The plotting script writes one PNG per error column next to the input table.
 Note that the script assumes global refinement option was used.
+
+## Python Scripts
+
+The Python utilities in [`scripts/`](scripts) support MMS generation,
+visualization, and convergence post-processing:
+
+- [`scripts/expressions_mms.py`](scripts/expressions_mms.py) is the shared
+  symbolic definition of the manufactured velocity, pressure, temperature,
+  gradients, and source terms. Other MMS scripts import this module so the
+  generated C++ code, LaTeX report, and plots all use the same exact fields.
+- [`scripts/generate_mms.py`](scripts/generate_mms.py) generates
+  [`src/mms_generated.h`](src/mms_generated.h) and
+  [`mms_report.tex`](mms_report.tex) from the symbolic MMS expressions. Use it
+  after changing [`scripts/expressions_mms.py`](scripts/expressions_mms.py).
+  Optional arguments `--cpp-out` and `--tex-out` select alternate output paths.
+- [`scripts/visualize_mms.py`](scripts/visualize_mms.py) plots the exact MMS
+  fields and source terms on the unit square. It writes
+  `mms_visualization.png` by default and accepts `--nu`,
+  `--thermal-diffusivity`, `--n`, `--output`, and `--show`.
+- [`scripts/convergence_rate_analysis.py`](scripts/convergence_rate_analysis.py)
+  reads a deal.II Org convergence table, assumes 2D global refinement with
+  `h ~ 1 / sqrt(cells)`, fits log-log convergence rates for every error
+  column, and writes plots plus `convergence_rates.txt` and
+  `convergence_rates.tex` next to the input table.
+- [`scripts/visualize_mms_errors.py`](scripts/visualize_mms_errors.py) builds a
+  combined MMS solution/error figure from legacy ASCII VTK files. It expects
+  solution folders named `mms_re<Re>_deg<degree>` under `solns/`, currently for
+  `Re = 100, 7500` and degrees `1, 2, 3`, selects the latest `ref*/newt*` VTK
+  file in each folder, and writes `mms_errors.png` by default.
