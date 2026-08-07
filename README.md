@@ -232,3 +232,10 @@ visualization, and convergence post-processing:
   solution folders named `mms_re<Re>_deg<degree>` under `solns/`, currently for
   `Re = 100, 7500` and degrees `1, 2, 3`, selects the latest `ref*/newt*` VTK
   file in each folder, and writes `mms_errors.png` by default.
+- [`scripts/visualize_mms_integral_errors.py`](scripts/visualize_mms_integral_errors.py)
+  builds the matching MMS solution/error figure for finer integral-error VTK
+  outputs. It reads folders named
+  `mms_re<Re>_deg<degree>_finer_integral_error`, plots
+  `velocity_L2_cell_error`, `velocity_H1_cell_error`, and
+  `pressure_L2_cell_error` with the same solution/degree columns, auto-detects
+  complete Re sets, and writes `mms_integral_errors.png` by default.
