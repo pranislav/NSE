@@ -20,6 +20,7 @@ teoria
 refactor
 - ConjugateHeatTransferSolver is a big class - does it make sense to spolit somehow?
 - split main, run to smaller functions (prints, loads)
+- update teploty inside newton iteration - velmi nepekne
 
 benchmarking
 - manufactured solutions
