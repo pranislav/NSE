@@ -803,8 +803,8 @@ namespace Cht
   template <int dim>
   void ConjugateHeatTransferSolver<dim>::solve_temperature()
   {
-    SolverControl solver_control(temperature_matrix.m(),
-                                 1e-6 * temperature_rhs.l2_norm() + 1e-12);
+    SolverControl solver_control(2 * temperature_matrix.m(),
+                                 1e-12 * temperature_rhs.l2_norm() + 1e-14);
     SolverGMRES<Vector<double>> gmres(solver_control);
     SparseILU<double>           preconditioner;
     preconditioner.initialize(temperature_matrix,
@@ -957,7 +957,7 @@ namespace Cht
                 first_step       = false;
                 evaluation_point = flow_solution;
                 assemble_flow_rhs(first_step);
-                current_res = flow_rhs.l2_norm(); // TODO: how come it works also for MMS where the rhs is nonzero?
+                current_res = flow_rhs.l2_norm();
                 std::cout << "The residual of initial guess is " << current_res
                           << std::endl;
                 last_res = current_res;
