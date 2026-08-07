@@ -957,7 +957,7 @@ namespace Cht
                 first_step       = false;
                 evaluation_point = flow_solution;
                 assemble_flow_rhs(first_step);
-                current_res = flow_rhs.l2_norm();
+                current_res = flow_rhs.l2_norm(); // TODO: how come it works also for MMS where the rhs is nonzero?
                 std::cout << "The residual of initial guess is " << current_res
                           << std::endl;
                 last_res = current_res;
@@ -993,11 +993,12 @@ namespace Cht
                 (output_partial_solutions ||
                  (refinement_n == max_n_refinements && current_res <= tolerance)))
               {
-                update_temperature_field();
                 output_results(refinement_n, line_search_n);
               }
           }
         
+        update_temperature_field(); // temp updated just once for each mesh, not each time a output is produced
+
         if (config.use_mms && compute_mms_errors)
           {
             MmsErrors mms_errors = compute_errors(refinement_n);
@@ -1109,8 +1110,13 @@ namespace Cht
             data_out.add_data_vector(temperature_dof_handler,
                                      temperature_error,
                                      "temperature_error");
-                      
-            // TODO temperature_L2_per_cell
+             
+            if (mms_errors)
+              {
+                data_out.add_data_vector(mms_errors->temperature_L2_per_cell,
+                                         "temperature_L2_cell_error",
+                                         DataOut<dim>::type_cell_data);
+              }
           }
       }
     data_out.build_patches();
@@ -1196,10 +1202,23 @@ namespace Cht
                                         mms_errors.velocity_H1_per_cell,
                                         VectorTools::H1_norm);
 
+    VectorTools::integrate_difference(temperature_dof_handler,
+                                      temperature_solution,
+                                      Cht::MMS::TemperatureSolution<dim>(),
+                                      mms_errors.temperature_L2_per_cell,
+                                      QGauss<dim>(degree + 2),
+                                      VectorTools::L2_norm);  
+
+    mms_errors.temperature_L2 = 
+      VectorTools::compute_global_error(triangulation,
+                                        mms_errors.temperature_L2_per_cell,
+                                        VectorTools::L2_norm);
+
     std::cout << std::endl
-              << "   Velocity L2 Error: " << mms_errors.velocity_L2 << std::endl
-              << "   Pressure L2 Error: " << mms_errors.pressure_L2 << std::endl
-              << "   Velocity H1 Error: " << mms_errors.velocity_H1 << std::endl;
+              << "   Velocity L2 Error:    " << mms_errors.velocity_L2 << std::endl
+              << "   Pressure L2 Error:    " << mms_errors.pressure_L2 << std::endl
+              << "   Velocity H1 Error:    " << mms_errors.velocity_H1 << std::endl
+              << "   Temperature L2 Error: " << mms_errors.temperature_L2 << std::endl;
     
     const unsigned int n_active_cells = triangulation.n_active_cells();
     const unsigned int n_dofs         = dof_handler.n_dofs();
@@ -1210,6 +1229,7 @@ namespace Cht
     convergence_table.add_value("L2_velocity", mms_errors.velocity_L2);
     convergence_table.add_value("L2_pressure", mms_errors.pressure_L2);
     convergence_table.add_value("H1_velocity", mms_errors.velocity_H1);
+    convergence_table.add_value("L2_temperature", mms_errors.temperature_L2);
     // convergence_table.add_value("Linfty", Linfty_error);
 
     return mms_errors;
@@ -1222,6 +1242,7 @@ namespace Cht
       convergence_table.set_scientific("L2_velocity", true);
       convergence_table.set_scientific("L2_pressure", true);
       convergence_table.set_scientific("H1_velocity", true);
+      convergence_table.set_scientific("L2_temperature", true);
       
       std::string error_filename = make_error_filename();
       std::ofstream org_mode_table(error_filename + ".org");
@@ -1231,12 +1252,14 @@ namespace Cht
       convergence_table.set_precision("L2_velocity", 3);
       convergence_table.set_precision("L2_pressure", 3);
       convergence_table.set_precision("H1_velocity", 3);
+      convergence_table.set_precision("L2_temperature", 3);
   
       convergence_table.set_tex_caption("cells", "\\# cells");
       convergence_table.set_tex_caption("dofs", "\\# dofs");
       convergence_table.set_tex_caption("L2_velocity", "$L^2$ velocity");
       convergence_table.set_tex_caption("L2_pressure", "$L^2$ pressure");
       convergence_table.set_tex_caption("H1_velocity", "$H^1$ velocity");
+      convergence_table.set_tex_caption("L2_temperature", "$L^2$ temperature");
   
       // convergence_table.set_tex_format("cells", "r");
       // convergence_table.set_tex_format("dofs", "r");

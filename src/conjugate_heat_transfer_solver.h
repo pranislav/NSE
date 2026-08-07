@@ -54,13 +54,15 @@ namespace Cht
 
     struct MmsErrors
     {
-      dealii::Vector<float> velocity_L2_per_cell;
-      dealii::Vector<float> pressure_L2_per_cell;
-      dealii::Vector<float> velocity_H1_per_cell;
+      dealii::Vector<double> velocity_L2_per_cell;
+      dealii::Vector<double> pressure_L2_per_cell;
+      dealii::Vector<double> velocity_H1_per_cell;
+      dealii::Vector<double> temperature_L2_per_cell;
 
       double velocity_L2 = 0.0;
       double pressure_L2 = 0.0;
       double velocity_H1 = 0.0;
+      double temperature_L2 = 0.0;
 
       MmsErrors() = default;
 
@@ -74,10 +76,12 @@ namespace Cht
         velocity_L2_per_cell.reinit(n_active_cells);
         pressure_L2_per_cell.reinit(n_active_cells);
         velocity_H1_per_cell.reinit(n_active_cells);
+        temperature_L2_per_cell.reinit(n_active_cells);
 
         velocity_L2 = 0.0;
         pressure_L2 = 0.0;
         velocity_H1 = 0.0;
+        temperature_L2 = 0.0;
       }
     };
 
