@@ -367,12 +367,27 @@ namespace Cht
     temperature_constraints.clear();
     DoFTools::make_hanging_node_constraints(temperature_dof_handler,
                                             temperature_constraints);
-    for (const auto &boundary : config.temperature_dirichlet_boundaries)
-      VectorTools::interpolate_boundary_values(
-        temperature_dof_handler,
-        boundary.boundary_id,
-        TemperatureBoundaryValues<dim>(boundary.value),
-        temperature_constraints);
+    if (config.use_mms)
+      {
+        for (const auto &entry : boundary_extents)
+          {
+            const auto boundary_id = entry.first;
+            VectorTools::interpolate_boundary_values(
+              temperature_dof_handler,
+              boundary_id,
+              MMS::TemperatureBoundaryValues<dim>(),
+              temperature_constraints);
+          }
+      }
+    else
+      {
+      for (const auto &boundary : config.temperature_dirichlet_boundaries)
+        VectorTools::interpolate_boundary_values(
+          temperature_dof_handler,
+          boundary.boundary_id,
+          TemperatureBoundaryValues<dim>(boundary.value),
+          temperature_constraints);
+      }
 
     temperature_constraints.close();
 
