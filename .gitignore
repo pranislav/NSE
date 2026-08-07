@@ -2,3 +2,5 @@ build
 .vscode
 compile_commands.json
 __pycache__
+CMakeCache.txt
+CMakeFiles
