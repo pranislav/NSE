@@ -702,10 +702,9 @@ namespace Cht
     hp::FEValues<dim> flow_fe_values(fe_collection,
                                      flow_quadratures,
                                      update_values);
-    FEValues<dim> temperature_fe_values(temperature_fe,
-                                        quadrature_formula,
+    FEValues<dim> temperature_fe_values(temperature_fe, quadrature_formula,
                                         update_values | update_gradients |
-                                          update_JxW_values);
+                                          update_JxW_values | update_quadrature_points);
     const FEValuesExtractors::Vector velocities(0);
 
     const unsigned int dofs_per_cell = temperature_fe.n_dofs_per_cell();
@@ -735,6 +734,8 @@ namespace Cht
         const bool   in_fluid_domain = cell_is_in_fluid_domain(flow_cell);
         const double thermal_diffusivity =
           material_data(cell->material_id()).thermal_diffusivity;
+        
+        Cht::MMS::TemperatureRightHandSide<dim> manufactured_rhs(thermal_diffusivity);
 
         if (in_fluid_domain)
           {
@@ -750,18 +751,28 @@ namespace Cht
                 phi_T[k]      = temperature_fe_values.shape_value(k, q);
                 grad_phi_T[k] = temperature_fe_values.shape_grad(k, q);
               }
+              const double f = 
+                config.use_mms ?
+                  manufactured_rhs.value(temperature_fe_values.quadrature_point(q)) :
+                  0.0;
 
             for (unsigned int i = 0; i < dofs_per_cell; ++i)
-              for (unsigned int j = 0; j < dofs_per_cell; ++j)
-                {
-                  local_matrix(i, j) +=
-                    (thermal_diffusivity * grad_phi_T[i] * grad_phi_T[j] *
-                     temperature_fe_values.JxW(q));
-
-                  if (in_fluid_domain)
+              {
+                for (unsigned int j = 0; j < dofs_per_cell; ++j)
+                  {
                     local_matrix(i, j) +=
-                      ((velocity_values[q] * grad_phi_T[j]) * phi_T[i] *
-                       temperature_fe_values.JxW(q));
+                      (thermal_diffusivity * grad_phi_T[i] * grad_phi_T[j] *
+                      temperature_fe_values.JxW(q));
+
+                    if (in_fluid_domain)
+                      local_matrix(i, j) +=
+                        ((velocity_values[q] * grad_phi_T[j]) * phi_T[i] *
+                        temperature_fe_values.JxW(q));
+                  }
+                if (config.use_mms)
+                  {
+                    local_rhs(i) += (phi_T[i] * f) * temperature_fe_values.JxW(q);
+                  }
                 }
           }
 

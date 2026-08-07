@@ -14,7 +14,7 @@ MMS roadmap
 	- visualize cell error
 	
 stage 2 (add temp):
-	- add source terms to assemble
+	+ add source terms to assemble
 	- boundary conditions handling
 	- compute error
 	- log error
