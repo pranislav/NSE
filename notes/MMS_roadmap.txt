@@ -22,7 +22,8 @@ stage 2 (add temp):
 	+ plotting workflow already automatized
 	+ document the changes in readme
 	+ test it
-
-stage 3 (solve on fluid/solid domain):
-	- just easy flow channel
 	- convergence analysis (maybe also error visualization) for two different Re and three different polynomial degrees
+
+x stage 3 (solve on fluid/solid domain):
+	x just easy flow channel
+	-> would need extra manufactured solution and boundry care. Proper working of the multi-phase solver can be checked in cheaper ways
