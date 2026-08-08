@@ -144,7 +144,7 @@ entries, one per constrained velocity component.
 ## Code Verification by Method of Manufactured Solutions
 
 The solver has a method of manufactured solutions (MMS) mode for verifying the
-Navier-Stokes solver on the unit square (extension of MMS for the temperature part is in progress TODO). Enable it from a
+Navier-Stokes solver on the unit square. Enable it from a
 case file with:
 
 ```prm

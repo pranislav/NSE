@@ -15,13 +15,13 @@ MMS roadmap
 	
 stage 2 (add temp):
 	+ add source terms to assemble
-	- boundary conditions handling
-	- compute error
-	- log error
-	- log cell error
+	+ boundary conditions handling
+	+ compute error
+	+ log error
+	+ log cell error
 	+ plotting workflow already automatized
-	- document the changes in readme
-	- test it
+	+ document the changes in readme
+	+ test it
 
 stage 3 (solve on fluid/solid domain):
 	- just easy flow channel
