@@ -1,2 +1,5 @@
 - why does it get stuck after it writes out the solution and before the last mean value adjustment?
 - how to make adaptive temperature solution acceptance criterion? (e-12 * rhs norm -> q1 enough, q2, q3 not enough; just make it tighter globally feels sketchy and causes unnecessary computations for q1)
+    - make solver error smaller than discretization error -> d.e. is proportional to cell size and polynomial degree, so const * (smallest_cell_size)^(polynomial_deg + 1)
+    - (based on difference between interpolated and current solution)
+- make initial guess for finer mesh from interpolation of solution on coarser mesh
