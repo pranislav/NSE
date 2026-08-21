@@ -1039,6 +1039,8 @@ namespace Cht
     std::optional<typename ConjugateHeatTransferSolver<dim>::MmsErrors>
       mms_errors) const
   {
+    std::cout << "making output" << std::endl;
+    
     std::filesystem::create_directories(output_directory);
 
     std::vector<std::string> solution_names(dim, "velocity");
@@ -1154,6 +1156,7 @@ namespace Cht
     // in a pressure with mean value zero. Here we make use of the fact that
     // the pressure is component $dim$ and that the finite element space
     // is nodal.
+    std::cout << "computing errors" << std::endl;
     const double mean_pressure = VectorTools::compute_mean_value(
       dof_handler, QGauss<dim>(degree + 2), flow_solution, dim); // TODO former pressure_degree (right change?)
     flow_solution.block(1).add(-mean_pressure);
