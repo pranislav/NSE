@@ -16,6 +16,7 @@
 #include <deal.II/grid/grid_in.h>
 #include <deal.II/grid/grid_out.h>
 #include <deal.II/grid/grid_refinement.h>
+#include <deal.II/grid/grid_tools.h>
 
 #include <deal.II/lac/dynamic_sparsity_pattern.h>
 #include <deal.II/lac/full_matrix.h>
@@ -803,8 +804,14 @@ namespace Cht
   template <int dim>
   void ConjugateHeatTransferSolver<dim>::solve_temperature()
   {
-    SolverControl solver_control(2 * temperature_matrix.m(),
-                                 1e-12 * temperature_rhs.l2_norm() + 1e-14);
+    std::cout << "updating temperature filed" << std::endl;
+
+    const double tolerance = 1e-12 * temperature_rhs.l2_norm() + 1e-14;
+    double min_diam = dealii::GridTools::minimal_cell_diameter(triangulation);
+    const double tolerance_tb = std::pow(min_diam, temperature_fe.degree + 1);
+    std::cout << "tolerance: " << tolerance << std::endl
+        << "h^(deg+1): " << tolerance_tb << std::endl << std::endl;
+    SolverControl solver_control(2 * temperature_matrix.m(), tolerance);
     SolverGMRES<Vector<double>> gmres(solver_control);
     SparseILU<double>           preconditioner;
     preconditioner.initialize(temperature_matrix,
