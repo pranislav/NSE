@@ -807,7 +807,7 @@ namespace Cht
     std::cout << "updating temperature filed" << std::endl;
 
     double min_diam = dealii::GridTools::minimal_cell_diameter(triangulation);
-    const double tolerance = 1e-7 * std::pow(min_diam, temperature_fe.degree + 1);
+    const double tolerance = 1e-7 * std::pow(min_diam, temperature_fe.degree + 1) + 1e-13;
     SolverControl solver_control(2 * temperature_matrix.m(), tolerance);
     SolverGMRES<Vector<double>> gmres(solver_control);
     SparseILU<double>           preconditioner;
