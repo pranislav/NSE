@@ -1,12 +1,6 @@
-- skontrolovat assembly advection termu
-
 TODO
-- pridat vypisovacky aj na teplotu
-- spomenut explicitne v readme ake rovnice to riesi
-- ako spustat generate do README
-- compute_errors - zmenit specifikaciu tlakovej komponenty z dim na pressure(enum)
+- compute_errors - zmenit specifikaciu tlakovej komponenty z dim na pressure(enum) -- cant make enum if dim is not known / mms built for 2D - enum implemented
 - enum for block indices?
-- case files refinement cycles je ich o jeden viac
 - implement no-penetration bc option pre vodnu hladinu
 
 otazky
@@ -21,6 +15,3 @@ refactor
 - ConjugateHeatTransferSolver is a big class - does it make sense to spolit somehow?
 - split main, run to smaller functions (prints, loads)
 - update teploty inside newton iteration - velmi nepekne
-
-benchmarking
-- manufactured solutions
