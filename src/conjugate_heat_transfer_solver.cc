@@ -1000,13 +1000,16 @@ namespace Cht
           }
         
         update_temperature_field(); // temp updated just once for each mesh, not each time a output is produced
-
+        
+        if (config.use_mms && compute_mms_errors)
+              {
+                MmsErrors mms_errors = compute_errors(refinement_n);
+              }
         if (output_result && 
           output_partial_solutions || refinement_n == max_n_refinements)
           {
             if (config.use_mms && compute_mms_errors)
               {
-                MmsErrors mms_errors = compute_errors(refinement_n);
                 output_results(refinement_n, line_search_n, mms_errors);
               }
             else
