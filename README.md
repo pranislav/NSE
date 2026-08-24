@@ -27,7 +27,7 @@ where T is temperature, κ is thermal diffusivity and s is a source term.
 Configure and build with CMake:
 
 ```bash
-cmake -S . -B build
+cmake -S . -B build -DCMAKE_BUILD_TYPE=<Release|Debug>
 cmake --build build
 ```
 
