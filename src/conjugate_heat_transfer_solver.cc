@@ -236,6 +236,29 @@ namespace Cht
   }
 
   template <int dim>
+  types::material_id
+  ConjugateHeatTransferSolver<dim>::fluid_material_id() const
+  {
+    types::material_id id = numbers::invalid_material_id;
+    unsigned int count = 0;
+
+    for (const auto &[material_id, data] : config.materials)
+      if (data.kind == MaterialData::Kind::fluid)
+        {
+          id = material_id;
+          ++count;
+        }
+
+    AssertThrow(count == 1,
+                ExcMessage("Expected exactly one fluid material, but found " +
+                          std::to_string(count) +
+                          ". Adaptive refinement code must be adapted to "
+                          "support multiple fluid materials."));
+
+    return id;
+  }
+
+  template <int dim>
   void ConjugateHeatTransferSolver<dim>::set_active_fe_indices()
   {
     for (const auto &cell : dof_handler.active_cell_iterators())
@@ -845,7 +868,12 @@ namespace Cht
       std::map<types::boundary_id, const Function<dim> *>(),
       flow_solution,
       flow_error_per_cell,
-      fe_collection.component_mask(velocity));
+      fe_collection.component_mask(velocity),
+      nullptr,
+      numbers::invalid_unsigned_int,
+      numbers::invalid_subdomain_id,
+      fluid_material_id(),
+      KellyErrorEstimator<dim>::Strategy::cell_diameter);
 
     if (temperature_solution.size() == temperature_dof_handler.n_dofs())
       KellyErrorEstimator<dim>::estimate(

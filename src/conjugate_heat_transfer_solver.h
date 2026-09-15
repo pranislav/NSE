@@ -90,6 +90,7 @@ namespace Cht
       const typename dealii::DoFHandler<dim>::cell_iterator &cell) const;
     bool cell_is_in_solid_domain(
       const typename dealii::DoFHandler<dim>::cell_iterator &cell) const;
+    dealii::types::material_id fluid_material_id() const;
 
     void set_active_fe_indices();
     void add_fluid_solid_interface_constraints(
