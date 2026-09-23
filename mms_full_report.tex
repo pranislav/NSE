@@ -11,6 +11,7 @@
 \usepackage{hyperref}
 \usepackage{cleveref}
 \usepackage{xcolor}
+\usepackage{makecell}
 
 \graphicspath{{./}{solns/}}
 \newcommand{\placeholderfigure}[2]{%
@@ -164,19 +165,8 @@
 % or label full-range fits as non-asymptotic diagnostics. There are presently
 % no corresponding coupled temperature runs at Re=7500.
 
-\begin{table}[htbp]
-  \centering
-  \caption{Temperature $L^2$ errors and local convergence rates at $Re=100$.}
-  \label{tab:temperature-rates}
-  \begin{tabular}{cccccc}
-    \toprule
-    degree & cycle & cells & $\norm{T-T_h}_{L^2}$ & local rate & use in fit? \\
-    \midrule
-    [ ] & [ ] & [ ] & [ ] & [ ] & [yes/no, with reason] \\
-    % Copy values from the selected final temperature-tightened result set.
-    \bottomrule
-  \end{tabular}
-\end{table}
+
+  \input{solns/mms_adaptive_temperature_error/mms_re7500_deg1_finer_integral_error_temperature_tighter/convergence_rates.tex}
 
 \begin{figure}[htbp]
   \centering
