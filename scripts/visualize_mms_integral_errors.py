@@ -126,6 +126,7 @@ def row_specs(re_values: list[int]) -> list[IntegralErrorRow]:
         ("velocity_L2_cell_error", "velocity L2", "velocity"),
         ("velocity_H1_cell_error", "velocity H1", "velocity"),
         ("pressure_L2_cell_error", "pressure L2", "pressure"),
+        ("temperature_L2_cell_error", "temperature L2", "temperature"),
     ]
     return [
         IntegralErrorRow(
@@ -171,7 +172,7 @@ def main() -> None:
     rows = row_specs(re_values)
 
     row_count = len(rows)
-    fig, axes = plt.subplots(row_count, 4, figsize=(28, 5.5 * row_count), constrained_layout=False)
+    fig, axes = plt.subplots(row_count, 4, figsize=(29, 5.5 * row_count), constrained_layout=False)
     axes = np.atleast_2d(axes)
     fig.subplots_adjust(left=0.1, right=0.985, bottom=0.035, top=0.88, wspace=0.18, hspace=0.08)
     fig.suptitle("MMS solutions and cell (integral) errors", fontsize=34, y=0.975)
@@ -203,7 +204,7 @@ def main() -> None:
     for row, spec in enumerate(rows):
         bbox = axes[row, 0].get_position()
         fig.text(
-            0.045,
+            0.055,
             (bbox.y0 + bbox.y1) / 2,
             f"{spec.label}\nRe {spec.re_value}",
             ha="center",
