@@ -10,6 +10,13 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 
+MAX_TRAILING_OUTLIERS = 2
+MIN_FIT_POINTS = 3
+OUTLIER_MIN_LOG_DEVIATION = math.log(1.25)
+OUTLIER_MIN_RATE_DROP = 0.75
+OUTLIER_RATE_STD_MULTIPLIER = 3
+
+
 def parse_org_table(path: Path) -> pd.DataFrame:
     """
     Parse dealii convergence table exported in org format.
@@ -64,7 +71,11 @@ def infer_h(n_cells: np.ndarray) -> np.ndarray:
     return 1.0 / np.sqrt(n_cells)
 
 
-def fit_convergence_rate(h: np.ndarray, error: np.ndarray):
+def fit_convergence_rate(
+    h: np.ndarray,
+    error: np.ndarray,
+    evaluation_h: np.ndarray | None = None,
+):
     """
     Fit:
         error = C * h^p
@@ -80,11 +91,55 @@ def fit_convergence_rate(h: np.ndarray, error: np.ndarray):
     slope = coef[0]
     intercept = coef[1]
 
-    fitted = np.exp(intercept) * h ** slope
+    if evaluation_h is None:
+        evaluation_h = h
+    fitted = np.exp(intercept) * evaluation_h ** slope
 
     slope_std = np.sqrt(cov[0, 0])
 
     return slope, fitted, slope_std
+
+
+def find_trailing_outliers(h: np.ndarray, error: np.ndarray) -> np.ndarray:
+    """Identify up to two fine-grid errors that depart from the coarse-grid trend.
+
+    Only the final refinement levels are considered because round-off effects are
+    expected at the smallest errors. A point is excluded only when it is at least
+    25% above the extrapolated error *and* its local rate drops substantially
+    relative to the preceding refinement levels. This prevents smooth changes in
+    slope from being treated as outliers.
+    """
+    n_points = len(error)
+    max_candidates = min(MAX_TRAILING_OUTLIERS, n_points - MIN_FIT_POINTS)
+
+    for n_outliers in range(max_candidates, 0, -1):
+        retained = slice(0, n_points - n_outliers)
+        log_h = np.log(h[retained])
+        log_error = np.log(error[retained])
+        slope, intercept = np.polyfit(log_h, log_error, deg=1)
+
+        excluded = np.arange(n_points - n_outliers, n_points)
+        extrapolated_log_error = slope * np.log(h[excluded]) + intercept
+        deviations = np.log(error[excluded]) - extrapolated_log_error
+
+        local_rates = np.log(error[:-1] / error[1:]) / np.log(h[:-1] / h[1:])
+        candidate_local_rates = local_rates[n_points - n_outliers - 1:]
+        reference_local_rates = local_rates[:n_points - n_outliers - 1]
+        reference_rate = np.median(reference_local_rates)
+        reference_spread = np.std(reference_local_rates, ddof=1)
+        rate_drop_threshold = max(
+            OUTLIER_MIN_RATE_DROP,
+            OUTLIER_RATE_STD_MULTIPLIER * reference_spread,
+        )
+        rate_drops = reference_rate - candidate_local_rates
+
+        if (
+            np.all(deviations > OUTLIER_MIN_LOG_DEVIATION)
+            and np.all(rate_drops > rate_drop_threshold)
+        ):
+            return excluded
+
+    return np.array([], dtype=int)
 
 
 def make_plot_and_log_rates(
@@ -92,18 +147,34 @@ def make_plot_and_log_rates(
     error,
     quantity_name,
     source_path,
-    rates_file
+    rates_file,
+    outlier_indices,
 ):
-    slope, fitted, slope_std = fit_convergence_rate(h, error)
+    retained = np.ones(len(error), dtype=bool)
+    retained[outlier_indices] = False
+    slope, fitted, slope_std = fit_convergence_rate(
+        h[retained],
+        error[retained],
+        evaluation_h=h,
+    )
 
     plt.figure(figsize=(6, 5))
 
     plt.loglog(
-        h,
-        error,
+        h[retained],
+        error[retained],
         "o",
         label=f"{quantity_name} data",
     )
+
+    if len(outlier_indices):
+        plt.loglog(
+            h[outlier_indices],
+            error[outlier_indices],
+            "o",
+            color="red",
+            label="excluded outlier",
+        )
 
     plt.loglog(
         h,
@@ -130,7 +201,12 @@ def make_plot_and_log_rates(
     print(f"Saved: {output_path}")
     rate_with_uncertainty = format_with_uncertainty(slope, slope_std)
     rates_file.write(f"{quantity_name}: {rate_with_uncertainty}\n")
+    if len(outlier_indices):
+        cycles = ", ".join(str(index) for index in outlier_indices)
+        rates_file.write(f"  excluded outlier cycle(s): {cycles}\n")
     print(f"Estimated convergence rate for {quantity_name}: {rate_with_uncertainty}")
+    if len(outlier_indices):
+        print(f"Excluded {quantity_name} outlier cycle(s): {cycles}")
     return rate_with_uncertainty
 
 
@@ -158,6 +234,12 @@ def format_local_rate(value):
 def format_tex_rate_with_uncertainty(rate):
     tex_rate = tex_escape(rate).replace("±", r"\pm")
     return f"${tex_rate}$"
+
+
+def format_outlier_tex(value: str, is_outlier: bool) -> str:
+    if is_outlier:
+        return rf"\textcolor{{red}}{{{value}}}"
+    return value
 
 
 def infer_pressure_degree(source_path: Path) -> int:
@@ -220,6 +302,7 @@ def write_local_convergence_table(
     fitted_rates,
     theoretical_rates,
     pressure_degree,
+    outliers,
     output_path,
 ):
     local_rates = {
@@ -234,6 +317,7 @@ def write_local_convergence_table(
         headers.extend([quantity, "rate"])
 
     lines = [
+        r"% Requires \usepackage{xcolor}",
         r"\begin{table}[htbp]",
         r"\centering",
         rf"\begin{{tabular}}{{{column_format}}}",
@@ -249,11 +333,14 @@ def write_local_convergence_table(
         ]
 
         for col in error_columns:
-            cells.append(format_error(row[col]))
+            is_outlier = row_index in outliers[col]
+            cells.append(format_outlier_tex(format_error(row[col]), is_outlier))
             if row_index == 0:
                 cells.append("--")
             else:
-                cells.append(format_local_rate(local_rates[col][row_index]))
+                cells.append(format_outlier_tex(
+                    format_local_rate(local_rates[col][row_index]), is_outlier
+                ))
 
         lines.append(" & ".join(cells) + r" \\ \hline")
 
@@ -273,7 +360,7 @@ def write_local_convergence_table(
 
     lines.extend([
         r"\end{tabular}",
-        rf"\caption{{Local convergence rates computed from adjacent refinement levels. Pressure is approximated with degree-${pressure_degree}$ polynomials, while velocity and temperature are approximated with degree-${pressure_degree + 1}$ polynomials. The final two rows show fitted rates with uncertainties from the log-log least-squares fit and the theoretical rates, respectively.}}",
+        rf"\caption{{Local convergence rates computed from adjacent refinement levels. Pressure is approximated with degree-${pressure_degree}$ polynomials, while velocity and temperature are approximated with degree-${pressure_degree + 1}$ polynomials. Red values are fine-grid outliers excluded from the log-log least-squares fit. The final two rows show fitted and theoretical rates, respectively.}}",
         r"\end{table}",
         "",
     ])
@@ -325,6 +412,10 @@ def main():
         col: theoretical_convergence_rate(col, pressure_degree)
         for col in error_columns
     }
+    outliers = {
+        col: find_trailing_outliers(h, df[col].to_numpy())
+        for col in error_columns
+    }
 
     fitted_rates = {}
     rates_path = args.table.parent / "convergence_rates.txt"
@@ -336,6 +427,7 @@ def main():
                 quantity_name=col,
                 source_path=args.table,
                 rates_file=rates_file,
+                outlier_indices=outliers[col],
             )
 
     write_local_convergence_table(
@@ -345,6 +437,7 @@ def main():
         fitted_rates=fitted_rates,
         theoretical_rates=theoretical_rates,
         pressure_degree=pressure_degree,
+        outliers=outliers,
         output_path=args.table.parent / "convergence_rates.tex",
     )
 
