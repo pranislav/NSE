@@ -2,6 +2,7 @@
 
 import argparse
 import math
+import re
 from pathlib import Path
 
 import numpy as np
@@ -159,6 +160,39 @@ def format_tex_rate_with_uncertainty(rate):
     return f"${tex_rate}$"
 
 
+def infer_pressure_degree(source_path: Path) -> int:
+    """Infer the pressure polynomial degree from the input table name or path."""
+    for text in (source_path.stem, *source_path.parts[::-1]):
+        match = re.search(r"(?:^|[_-])q(?P<degree>\d+)(?:$|[_-])", text)
+        if match:
+            return int(match.group("degree"))
+
+        match = re.search(r"(?:^|[_-])deg(?P<degree>\d+)(?:$|[_-])", text)
+        if match:
+            return int(match.group("degree"))
+
+    raise ValueError(
+        "Could not infer the polynomial degree from the table path. "
+        "Expected a name containing q<N> or deg<N>."
+    )
+
+
+def theoretical_convergence_rate(error_column: str, pressure_degree: int) -> int:
+    """Return the expected rate, accounting for the higher velocity/temperature degree."""
+    basis_degree = pressure_degree
+    if error_column.endswith(("_velocity", "_temperature")):
+        basis_degree += 1
+
+    if error_column.startswith("H1_"):
+        return basis_degree
+    if error_column.startswith("L2_"):
+        return basis_degree + 1
+
+    raise ValueError(
+        f"Cannot determine the theoretical convergence rate for {error_column!r}."
+    )
+
+
 def compute_local_rates(h, error):
     rates = [None]
     for previous_h, current_h, previous_error, current_error in zip(
@@ -179,7 +213,15 @@ def compute_local_rates(h, error):
     return rates
 
 
-def write_local_convergence_table(df, h, error_columns, fitted_rates, output_path):
+def write_local_convergence_table(
+    df,
+    h,
+    error_columns,
+    fitted_rates,
+    theoretical_rates,
+    pressure_degree,
+    output_path,
+):
     local_rates = {
         col: compute_local_rates(h, df[col].to_numpy())
         for col in error_columns
@@ -222,9 +264,16 @@ def write_local_convergence_table(df, h, error_columns, fitted_rates, output_pat
         fitted_row.extend(["--", format_tex_rate_with_uncertainty(fitted_rates[col])])
     lines.append(" & ".join(fitted_row) + r" \\ \hline")
 
+    theoretical_row = [
+        rf"\multicolumn{{3}}{{|r|}}{{theoretical rate}}",
+    ]
+    for col in error_columns:
+        theoretical_row.extend(["--", f"${theoretical_rates[col]}$"])
+    lines.append(" & ".join(theoretical_row) + r" \\ \hline")
+
     lines.extend([
         r"\end{tabular}",
-        r"\caption{Local convergence rates computed from adjacent refinement levels. The final row shows fitted rates with uncertainties from the log-log least-squares fit.}",
+        rf"\caption{{Local convergence rates computed from adjacent refinement levels. Pressure is approximated with degree-${pressure_degree}$ polynomials, while velocity and temperature are approximated with degree-${pressure_degree + 1}$ polynomials. The final two rows show fitted rates with uncertainties from the log-log least-squares fit and the theoretical rates, respectively.}}",
         r"\end{table}",
         "",
     ])
@@ -271,6 +320,12 @@ def main():
         if col not in ["cycle", "cells", "dofs"]
     ]
 
+    pressure_degree = infer_pressure_degree(args.table)
+    theoretical_rates = {
+        col: theoretical_convergence_rate(col, pressure_degree)
+        for col in error_columns
+    }
+
     fitted_rates = {}
     rates_path = args.table.parent / "convergence_rates.txt"
     with rates_path.open("w") as rates_file:
@@ -288,6 +343,8 @@ def main():
         h=h,
         error_columns=error_columns,
         fitted_rates=fitted_rates,
+        theoretical_rates=theoretical_rates,
+        pressure_degree=pressure_degree,
         output_path=args.table.parent / "convergence_rates.tex",
     )
 
