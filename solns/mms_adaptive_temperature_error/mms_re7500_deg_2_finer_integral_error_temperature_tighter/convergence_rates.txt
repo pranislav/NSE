@@ -1,0 +1,4 @@
+L2_velocity: 4.343 ± 0.021
+L2_pressure: 2.9890 ± 0.0026
+H1_velocity: 3.284 ± 0.029
+L2_temperature: 3.9942 ± 0.0028
