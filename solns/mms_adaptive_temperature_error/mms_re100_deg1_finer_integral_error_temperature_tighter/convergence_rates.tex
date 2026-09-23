@@ -1,3 +1,4 @@
+% Requires \usepackage{xcolor}
 \begin{table}[htbp]
 \centering
 \begin{tabular}{|r|r|r|r|r|r|r|r|r|r|r|}
@@ -9,6 +10,7 @@ cycle & \# cells & \# dofs & L2\_velocity & rate & L2\_pressure & rate & H1\_vel
 3 & 18496 & 167827 & 6.542e-08 & 3.31 & 1.406e-05 & 2.00 & 6.401e-05 & 2.09 & 2.391e-07 & 3.00 \\ \hline
 4 & 73984 & 668579 & 7.612e-09 & 3.10 & 3.516e-06 & 2.00 & 1.572e-05 & 2.03 & 2.988e-08 & 3.00 \\ \hline
 \multicolumn{3}{|r|}{fitted rate} & -- & $3.46 \pm 0.08$ & -- & $2.0021 \pm 0.0009$ & -- & $2.23 \pm 0.06$ & -- & $2.9990 \pm 0.0004$ \\ \hline
+\multicolumn{3}{|r|}{theoretical rate} & -- & $3$ & -- & $2$ & -- & $2$ & -- & $3$ \\ \hline
 \end{tabular}
-\caption{Local convergence rates computed from adjacent refinement levels. The final row shows fitted rates with uncertainties from the log-log least-squares fit.}
+\caption{Local convergence rates computed from adjacent refinement levels. Pressure is approximated with degree-$1$ polynomials, while velocity and temperature are approximated with degree-$2$ polynomials. Red values are fine-grid outliers excluded from the log-log least-squares fit. The final two rows show fitted and theoretical rates, respectively.}
 \end{table}

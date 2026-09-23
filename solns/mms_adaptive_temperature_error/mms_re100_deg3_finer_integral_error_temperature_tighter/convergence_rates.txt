@@ -1,4 +1,6 @@
-L2_velocity: 4.2 ± 0.6
+L2_velocity: 5.22 ± 0.08
+  excluded outlier cycle(s): 4
 L2_pressure: 4.0003 ± 0.0006
 H1_velocity: 4.09 ± 0.03
-L2_temperature: 3.4 ± 0.7
+L2_temperature: 4.99866 ± 0.00019
+  excluded outlier cycle(s): 3, 4
