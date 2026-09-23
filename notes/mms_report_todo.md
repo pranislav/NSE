@@ -3,7 +3,6 @@
 ## Context / resume reference
 
 - Chat ID needed to resume this context window: `codex resume 01a0b55d-94b9-78f2-bc7f-8d13b4b80af5`
-- Add the numeric chat/session ID here manually if it is visible in the Codex UI.
 - Relevant template: [`mms_verification_report_template.tex`](../mms_verification_report_template.tex).
 
 ## Proposed report scope
@@ -31,7 +30,7 @@
 
 - [x] `Re = 100`, degrees 1, 2, and 3 have final coupled result sets in
   `solns/mms_re100_deg{1,2,3}_finer_integral_error_temperature_tighter/`.
-- [ ] `Re = 7500`, degrees 1, 2, and 3: coupled temperature MMS results are
+- [x] `Re = 7500`, degrees 1, 2, and 3: coupled temperature MMS results are
   missing. Generate these if the report claims coupled flow--temperature
   verification at both Reynolds numbers.
 - [x] Degree-1 temperature convergence at `Re = 100` is stable:
@@ -58,7 +57,7 @@
   The solver writes `temperature_L2_cell_error`, but
   `scripts/visualize_mms_integral_errors.py` currently visualises only
   velocity `L2`, velocity `H1`, and pressure `L2` cell errors.
-- [ ] If required by the final claim, run coupled MMS at `Re=7500` for degrees
+- [x] If required by the final claim, run coupled MMS at `Re=7500` for degrees
   1--3 and perform the same convergence analysis.
 
 ## Suggested figures and tables
