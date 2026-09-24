@@ -12,8 +12,11 @@
 \usepackage{cleveref}
 \usepackage{xcolor}
 \usepackage{makecell}
+\usepackage[backend=biber, style=numeric]{biblatex}
+\addbibresource{references.bib}
 
-\graphicspath{{./}{solns/}}
+
+\graphicspath{{../}{solns/mms_adaptive_temperature_error/}}
 \newcommand{\placeholderfigure}[2]{%
   \fbox{\parbox[c][#2][c]{0.92\linewidth}{\centering\textit{Figure placeholder}\\[0.5em]#1}}%
 }
@@ -22,8 +25,8 @@
 
 \title{Verification of a Two-Dimensional Conjugate Heat-Transfer Solver\\
        by the Method of Manufactured Solutions}
-\author{[Name]}
-\date{[Month Year]}
+\author{Branislav Palúch}
+\date{\today}
 
 \begin{document}
 \maketitle
@@ -32,6 +35,7 @@
 % 150--220 words. State the verification objective, equations verified,
 % discretisation range, the principal flow result, temperature-verification
 % status, and one precise limitation. Do not explain the entire methodology.
+asdf
 \end{abstract}
 
 \section{Introduction and verification scope}
@@ -42,17 +46,52 @@
 % 2D, steady, unit-square, smooth solution, global refinement, fluid domain.
 % Explicitly exclude unverified claims: physical-model validity, transient
 % behaviour, 3D, and fluid--solid MMS unless supporting results are added.
+Code verification is an important step towards successfull simulation.
+It concerns whether our code correctly implements mathematical model of studied phenomenon \cite{roy2005verification}.
+It does not however judge how well the chosen model describes reality.
+
+Method of Manufactured Solution (MMS) is a general code verification tool \cite{salari2000mms}.
+Workflow of MMS is following:
+\begin{enumerate}
+  \item Choose an appropriate analytical field.
+  \item Compute corresponding boundary conditions.
+  \item Substitute the field into governing equations and get source terms.
+  \item Solve numerically with computed source terms and boundary conditions.
+  \item Compute cell errors and combine them into a global error using appropriate norm.
+  \item Repeat for gradually refined grid and compare the error convergence with theoretical values.
+\end{enumerate}
+
+
+MMS is used here to verify implementation of conjugate heat tranfer solver.
+The problem is in 2D and we are considering a steady-state.
+The domain is a fluid-only unit square.
+The square mesh is refined globally each time for easier convergence analysis.
+
+
+
 
 \section{Mathematical model and discretisation}
 % Target: 1--1.5 pages. Use the notation actually used by the solver.
 \subsection{Governing equations}
 % Give the steady incompressible Navier--Stokes equations and the steady
 % advection--diffusion temperature equation. Define u, p, T, nu, kappa, f, s.
-\begin{align}
-  (\bm{u}\cdot\nabla)\bm{u}-\nu\Delta\bm{u}+\nabla p &= \bm{f},
-  & \nabla\cdot\bm{u} &= 0, \\
-  \bm{u}\cdot\nabla T-\kappa\Delta T &= s.
-\end{align}
+
+The mathematical model that is implemented in the code is described by following equations:
+
+\begin{subequations}\label{cht}
+  \begin{align}
+    (\bm{u}\cdot\nabla)\bm{u}-\nu\Delta\bm{u}+\nabla p &= \bm{f}, \label{cht-momentum}\\
+    \nabla\cdot\bm{u} &= 0, \label{cht-continuity} \\
+    \bm{u}\cdot\nabla T-\kappa\Delta T &= s, \label{cht-heat}
+  \end{align}
+\end{subequations}  
+
+
+where $\bm{u}$ is fluid velocity field, $\nu$ is viscosity, $p$ is pressure, $\bm{f}$ is external force (source term), $T$ is temperature, $\kappa$ is thermal diffusivity and $s$ is a heat source.
+The \eqref{cht-momentum} and \eqref{cht-continuity} are incompressible Navier-Stokes equations, top one governing momentum of fluid and the other one ensuring its incompressibility (also called continuity equation).
+The advection-diffusion temperature equation \ref{cht-heat} concerns heat transport by conduction and motion of the fluid.  
+
+
 
 \subsection{Finite-element approximation and error norms}
 % State the Taylor--Hood pair precisely. In the present code, ``degree k''
@@ -67,12 +106,7 @@
 % from scripts/expressions_mms.py. Regenerate mms_report.tex if expressions
 % change; include the generated equations rather than retyping them manually.
 \subsection{Exact fields, forcing, and boundary data}
-\begin{align}
-  u_x &= \sin(\pi x)\cos(\pi y), &
-  u_y &= -\cos(\pi x)\sin(\pi y), \\
-  p &= \cos(\pi x)\sin(\pi y), &
-  T &= \cos(2\pi x)\sin(\pi y).
-\end{align}
+\input{../mms_report.tex}
 % Insert the complete generated momentum and temperature source terms here,
 % or move their long forms to an appendix and cite it. State that the velocity
 % is divergence-free and that Dirichlet data are exact traces of these fields.
@@ -80,12 +114,13 @@
 \begin{figure}[htbp]
   \centering
   % Replace this placeholder with:
-  % \includegraphics[width=\linewidth]{mms_visualization.png}
-  \placeholderfigure{Exact velocity, pressure, temperature, and source terms.}{58mm}
+  \includegraphics[width=\linewidth]{mms_visualization.png}
   \caption{[Caption: identify each field and the parameters used to evaluate
   the forcing terms.]}
   \label{fig:mms-fields}
 \end{figure}
+
+\ref{fig:mms-fields}
 
 \section{Computational verification procedure}
 % Target: 1--1.5 pages.
@@ -121,28 +156,6 @@
 % rounded value is close: discuss uncertainty, local rates, and asymptotic
 % range. Explicitly discuss the degree-1 H1 result at Re=7500.
 
-\begin{table}[htbp]
-  \centering
-  \caption{Expected and fitted flow convergence rates.}
-  \label{tab:flow-rates}
-  \begin{threeparttable}
-  \begin{tabular}{ccccc}
-    \toprule
-    $Re$ & degree & norm & expected rate & fitted rate \\
-    \midrule
-    [100/7500] & [1] & $\norm{\bm{u}-\bm{u}_h}_{L^2}$ & [ ] & [ ] \\
-    [100/7500] & [1] & $\norm{p-p_h}_{L^2}$            & [ ] & [ ] \\
-    [100/7500] & [1] & $\seminorm{\bm{u}-\bm{u}_h}_{H^1}$ & [ ] & [ ] \\
-    % Add rows for degrees 2 and 3, or make separate tables by Reynolds number.
-    \bottomrule
-  \end{tabular}
-  \begin{tablenotes}[flushleft]
-    \footnotesize
-    \item Fitted rates are slopes of least-squares fits in log--log space;
-    report the standard error and state the refinement levels included.
-  \end{tablenotes}
-  \end{threeparttable}
-\end{table}
 
 \begin{figure}[htbp]
   \centering
@@ -166,7 +179,7 @@
 % no corresponding coupled temperature runs at Re=7500.
 
 
-  \input{solns/mms_adaptive_temperature_error/mms_re7500_deg1_finer_integral_error_temperature_tighter/convergence_rates.tex}
+  \input{../solns/mms_adaptive_temperature_error/mms_re100_deg3_finer_integral_error_temperature_tighter/convergence_rates.tex}
 
 \begin{figure}[htbp]
   \centering
@@ -216,5 +229,7 @@
 % Include the generated convergence_rates.tex tables for every reported set.
 % Put exploratory/obsolete directories in a separate archival appendix or omit
 % them. Record the exact result-directory names for reproducibility.
+
+\printbibliography
 
 \end{document}
