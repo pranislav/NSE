@@ -233,7 +233,8 @@ def format_local_rate(value):
 
 def format_tex_rate_with_uncertainty(rate):
     tex_rate = tex_escape(rate).replace("±", r"\pm")
-    return f"${tex_rate}$"
+    value, uncertainty = tex_rate.split(r"\pm", 1)
+    return rf"\makecell[r]{{${value}$\\$\pm {uncertainty}$}}"
 
 
 def format_outlier_tex(value: str, is_outlier: bool) -> str:
@@ -310,14 +311,17 @@ def write_local_convergence_table(
         for col in error_columns
     }
 
-    column_format = "|r|r|r|" + "r|r|" * len(error_columns)
-    headers = ["cycle", r"\# cells", r"\# dofs"]
+    column_format = "|r|" + "r|r|" * len(error_columns)
+    headers = ["cycle"]
     for col in error_columns:
-        quantity = tex_escape(col)
+        norm, quantity_name = col.split("_", 1)
+        if quantity_name == "temperature":
+            quantity_name = "temper."
+        quantity = rf"\makecell{{${norm[0]}^{{2}}$\\{tex_escape(quantity_name)}}}"
         headers.extend([quantity, "rate"])
 
     lines = [
-        r"% Requires \usepackage{xcolor}",
+        r"% Requires \usepackage{xcolor,makecell}",
         r"\begin{table}[htbp]",
         r"\centering",
         rf"\begin{{tabular}}{{{column_format}}}",
@@ -328,34 +332,29 @@ def write_local_convergence_table(
     for row_index, row in df.iterrows():
         cells = [
             f"{int(row['cycle'])}",
-            f"{int(row['cells'])}",
-            f"{int(row['dofs'])}",
         ]
 
         for col in error_columns:
             is_outlier = row_index in outliers[col]
             cells.append(format_outlier_tex(format_error(row[col]), is_outlier))
             if row_index == 0:
-                cells.append("--")
+                cells.append(r"\makecell{--}")
             else:
-                cells.append(format_outlier_tex(
-                    format_local_rate(local_rates[col][row_index]), is_outlier
-                ))
+                rate = format_local_rate(local_rates[col][row_index])
+                if rate == "--":
+                    rate = r"\makecell{--}"
+                cells.append(format_outlier_tex(rate, is_outlier))
 
         lines.append(" & ".join(cells) + r" \\ \hline")
 
-    fitted_row = [
-        rf"\multicolumn{{3}}{{|r|}}{{fitted rate}}",
-    ]
+    fitted_row = [r"\makecell[r]{fitted\\rate}"]
     for col in error_columns:
-        fitted_row.extend(["--", format_tex_rate_with_uncertainty(fitted_rates[col])])
+        fitted_row.extend([r"\makecell{--}", format_tex_rate_with_uncertainty(fitted_rates[col])])
     lines.append(" & ".join(fitted_row) + r" \\ \hline")
 
-    theoretical_row = [
-        rf"\multicolumn{{3}}{{|r|}}{{theoretical rate}}",
-    ]
+    theoretical_row = ["expect"]
     for col in error_columns:
-        theoretical_row.extend(["--", f"${theoretical_rates[col]}$"])
+        theoretical_row.extend([r"\makecell{--}", f"${theoretical_rates[col]}$"])
     lines.append(" & ".join(theoretical_row) + r" \\ \hline")
 
     lines.extend([

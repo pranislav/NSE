@@ -1,16 +1,16 @@
-% Requires \usepackage{xcolor}
+% Requires \usepackage{xcolor,makecell}
 \begin{table}[htbp]
 \centering
-\begin{tabular}{|r|r|r|r|r|r|r|r|r|r|r|}
+\begin{tabular}{|r|r|r|r|r|r|r|r|r|}
 \hline
-cycle & \# cells & \# dofs & L2\_velocity & rate & L2\_pressure & rate & H1\_velocity & rate & L2\_temperature & rate \\ \hline
-0 & 289 & 6633 & 6.972e-07 & -- & 2.478e-05 & -- & 9.395e-05 & -- & 2.483e-06 & -- \\ \hline
-1 & 1156 & 25979 & 2.965e-08 & 4.56 & 3.157e-06 & 2.97 & 9.350e-06 & 3.33 & 1.555e-07 & 4.00 \\ \hline
-2 & 4624 & 102819 & 1.507e-09 & 4.30 & 3.979e-07 & 2.99 & 1.068e-06 & 3.13 & 9.720e-09 & 4.00 \\ \hline
-3 & 18496 & 409091 & 8.768e-11 & 4.10 & 4.993e-08 & 2.99 & 1.300e-07 & 3.04 & 6.075e-10 & 4.00 \\ \hline
-4 & 73984 & 1632003 & 5.374e-12 & 4.03 & 6.254e-09 & 3.00 & 1.614e-08 & 3.01 & 3.864e-11 & 3.97 \\ \hline
-\multicolumn{3}{|r|}{fitted rate} & -- & $4.24 \pm 0.06$ & -- & $2.9886 \pm 0.0028$ & -- & $3.12 \pm 0.04$ & -- & $3.9943 \pm 0.0027$ \\ \hline
-\multicolumn{3}{|r|}{theoretical rate} & -- & $4$ & -- & $3$ & -- & $3$ & -- & $4$ \\ \hline
+cycle & \makecell{$L^{2}$\\velocity} & rate & \makecell{$L^{2}$\\pressure} & rate & \makecell{$H^{2}$\\velocity} & rate & \makecell{$L^{2}$\\temper.} & rate \\ \hline
+0 & 6.972e-07 & \makecell{--} & 2.478e-05 & \makecell{--} & 9.395e-05 & \makecell{--} & 2.483e-06 & \makecell{--} \\ \hline
+1 & 2.965e-08 & 4.56 & 3.157e-06 & 2.97 & 9.350e-06 & 3.33 & 1.555e-07 & 4.00 \\ \hline
+2 & 1.507e-09 & 4.30 & 3.979e-07 & 2.99 & 1.068e-06 & 3.13 & 9.720e-09 & 4.00 \\ \hline
+3 & 8.768e-11 & 4.10 & 4.993e-08 & 2.99 & 1.300e-07 & 3.04 & 6.075e-10 & 4.00 \\ \hline
+4 & 5.374e-12 & 4.03 & 6.254e-09 & 3.00 & 1.614e-08 & 3.01 & 3.864e-11 & 3.97 \\ \hline
+\makecell[r]{fitted\\rate} & \makecell{--} & \makecell[r]{$4.24 $\\$\pm  0.06$} & \makecell{--} & \makecell[r]{$2.9886 $\\$\pm  0.0028$} & \makecell{--} & \makecell[r]{$3.12 $\\$\pm  0.04$} & \makecell{--} & \makecell[r]{$3.9943 $\\$\pm  0.0027$} \\ \hline
+expect & \makecell{--} & $4$ & \makecell{--} & $3$ & \makecell{--} & $3$ & \makecell{--} & $4$ \\ \hline
 \end{tabular}
 \caption{Local convergence rates computed from adjacent refinement levels. Pressure is approximated with degree-$2$ polynomials, while velocity and temperature are approximated with degree-$3$ polynomials. Red values are fine-grid outliers excluded from the log-log least-squares fit. The final two rows show fitted and theoretical rates, respectively.}
 \end{table}

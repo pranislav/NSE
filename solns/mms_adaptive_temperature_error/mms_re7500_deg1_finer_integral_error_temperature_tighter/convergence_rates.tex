@@ -1,15 +1,15 @@
-% Requires \usepackage{xcolor}
+% Requires \usepackage{xcolor,makecell}
 \begin{table}[htbp]
 \centering
 \begin{tabular}{|r|r|r|r|r|r|r|r|r|}
 \hline
-cycle  & \makecell{$L^2$\\velocity} & rate & \makecell{$L^2$\\pressure} & rate & \makecell{$H^1$\\velocity} & rate & \makecell{$L^2$\\temper.} & rate \\ \hline
-0 & 2.046e-03 & -- & 1.636e-03 & -- & 9.421e-02 & -- & 1.288e-04 & -- \\ \hline
+cycle & \makecell{$L^{2}$\\velocity} & rate & \makecell{$L^{2}$\\pressure} & rate & \makecell{$H^{2}$\\velocity} & rate & \makecell{$L^{2}$\\temper.} & rate \\ \hline
+0 & 2.046e-03 & \makecell{--} & 1.636e-03 & \makecell{--} & 9.421e-02 & \makecell{--} & 1.288e-04 & \makecell{--} \\ \hline
 1 & 2.650e-04 & 2.95 & 2.783e-04 & 2.56 & 3.072e-02 & 1.62 & 1.603e-05 & 3.01 \\ \hline
 2 & 2.602e-05 & 3.35 & 5.842e-05 & 2.25 & 6.441e-03 & 2.25 & 1.968e-06 & 3.03 \\ \hline
 3 & 1.929e-06 & 3.75 & 1.411e-05 & 2.05 & 9.702e-04 & 2.73 & 2.415e-07 & 3.03 \\ \hline
 4 & 1.268e-07 & 3.93 & 3.516e-06 & 2.00 & 1.288e-04 & 2.91 & 2.997e-08 & 3.01 \\ \hline
-\makecell[r]{fitted\\rate} & \makecell{--} & \makecell[r]{$3.51$\\ $\pm 0.12$} & \makecell{--} & \makecell[r]{$2.20$\\$\pm 0.07$} & \makecell{--} & \makecell[r]{$2.40$\\$\pm 0.15$} & \makecell{--} & \makecell[r]{$3.0191$\\$\pm 0.0022$} \\ \hline
+\makecell[r]{fitted\\rate} & \makecell{--} & \makecell[r]{$3.51 $\\$\pm  0.12$} & \makecell{--} & \makecell[r]{$2.20 $\\$\pm  0.07$} & \makecell{--} & \makecell[r]{$2.40 $\\$\pm  0.15$} & \makecell{--} & \makecell[r]{$3.0191 $\\$\pm  0.0022$} \\ \hline
 expect & \makecell{--} & $3$ & \makecell{--} & $2$ & \makecell{--} & $2$ & \makecell{--} & $3$ \\ \hline
 \end{tabular}
 \caption{Local convergence rates computed from adjacent refinement levels. Pressure is approximated with degree-$1$ polynomials, while velocity and temperature are approximated with degree-$2$ polynomials. Red values are fine-grid outliers excluded from the log-log least-squares fit. The final two rows show fitted and theoretical rates, respectively.}
