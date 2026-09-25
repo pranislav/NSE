@@ -35,7 +35,7 @@
 % 150--220 words. State the verification objective, equations verified,
 % discretisation range, the principal flow result, temperature-verification
 % status, and one precise limitation. Do not explain the entire methodology.
-asdf
+abstract's waiting for the report to be finished
 \end{abstract}
 
 \section{Introduction and verification scope}
@@ -100,27 +100,76 @@ The advection-diffusion temperature equation \ref{cht-heat} concerns heat transp
 % Define L2(u), L2(p), H1(u), and L2(T). Mention global mesh refinement,
 % five refinement levels, and the pressure mean-value adjustment.
 % Give expected asymptotic rates only after checking the exact FE spaces.
+The code aims to implement a finite-element approximation of of the model above.
+Taylor-Hood elements are used, i.e. polynomial basis functions used for discretizing velocity are one degree higher than those for pressure.
+This element pair satisfies the inf-sup stability condition which ensures a robust discretization \cite{taylor1973numerical,brezzi1991stability}.
+Degree for temperature elements was set same to degree of velocity elements.
+Simulation with degree $k$ basis functions thus should be understand as pressure being approximated with $k$ degree polynomials and velocity with temperature with $k+1$ degree polynomials.
+
+Quality of the numerical solution is measured via an error $e$ defined as the difference between computed and manufactured analytical solution on a relevant domain $\Omega$.
+For measuring the difference, we use $L^2$ norm and $H^1$ seminorm:
+\begin{subequations}
+  \begin{align}
+    e_{u, L^2(\Omega)} &= \left\|u_h - u_{\mathrm{MMS}}\right\|_{L^2(\Omega)} =
+    \left(
+      \int_{\Omega}
+      \left|u_h - u_{\mathrm{MMS}}\right|^2
+      \,\mathrm{d}x
+    \right)^{1/2}, \\
+    e_{u,H^1(\Omega)}
+      &= \left|u_h-u_{\mathrm{MMS}}\right|_{H^1(\Omega)} =
+      \left(
+      \int_{\Omega}
+      \left|\nabla u\right|^2
+      \,\mathrm{d}x
+      \right)^{1/2} ,
+  \end{align}
+\end{subequations}
+where $u$ is concerned quantity (vector/scalar), in particular $u_h$ is discretized solution and $u_{MMS}$ is manufactured analytical solution.
+We use $L^2$ norm for error on velocity, pressure and temperature and $H^1$ norm for velocity.
 
 \section{Manufactured problem}
 % Target: 1.5--2 pages. The exact expressions and source terms are generated
 % from scripts/expressions_mms.py. Regenerate mms_report.tex if expressions
 % change; include the generated equations rather than retyping them manually.
+The manufactured solution ground truth is given by \texttt{scripts/expressions\_mms.py}.
+From this source the exact solution, forcing terms and boundary conditions for C++ solver are generated.
+Also LaTex expressions stated here are generated based on this file.
+
+
 \subsection{Exact fields, forcing, and boundary data}
-\input{../mms_report.tex}
+% \input{../mms_report.tex}
 % Insert the complete generated momentum and temperature source terms here,
 % or move their long forms to an appendix and cite it. State that the velocity
 % is divergence-free and that Dirichlet data are exact traces of these fields.
+According to \href{https://dealii.org/current/doxygen/deal.II/step_7.html#step_7-Themethodofmanufacturedsolutions}{Deal II tutorial 7}, the chosen solution should have certain characteristics.
+\begin{enumerate}
+  \item not too complicated
+  \item not a polynomial of low degree - to avoid superconvergence
+  \item sufficiently smooth - theoretical FEM convergence estimates typically assume this
+  \item with characteristic lenght bigger than a mesh cell - to be able to approximate it reasonably.
+\end{enumerate}
+We chose following solution consisting of goniometric functions that satisfies these criterions:
+\begin{subequations}
+  \begin{align}
+    u_x(x,y) &= \sin{\left(\pi x \right)} \cos{\left(\pi y \right)} \\
+    u_y(x,y) &= - \sin{\left(\pi y \right)} \cos{\left(\pi x \right)} \\
+    p(x,y) &= \sin{\left(\pi y \right)} \cos{\left(\pi x \right)} \\
+    T(x,y) &= \sin{\left(\pi y \right)} \cos{\left(2 \pi x \right)}.
+  \end{align}
+\end{subequations}
+Also the velocity is designed to be divergence-free to satisfy the continuity equation.
+The solution is visualized on figure \ref{fig:mms-fields} together with computed source fields whose analytical forms can be found in appendix \ref{appendix:generated_sources}.
+The boundaray conditions are implemented as functions by sampling from the analytical solution, thus the analytical terms are unnecessary to state here.
 
 \begin{figure}[htbp]
   \centering
   % Replace this placeholder with:
   \includegraphics[width=\linewidth]{mms_visualization.png}
-  \caption{[Caption: identify each field and the parameters used to evaluate
-  the forcing terms.]}
+  \caption{visualization of the manufactured solution and computed forcing terms.}
   \label{fig:mms-fields}
 \end{figure}
 
-\ref{fig:mms-fields}
 
 \section{Computational verification procedure}
 % Target: 1--1.5 pages.
@@ -130,24 +179,29 @@ The advection-diffusion temperature equation \ref{cht-heat} concerns heat transp
 % reproducibility paragraph: case files, output directory convention, and
 % the script used for fitting. Do not report a fit that contains a numerical
 % error floor without identifying/excluding those points.
+The verification was made on a square grid with initial number of cells per side 17.
+The grid was four times globally refined and error at each refinement was recorded.
+The number of cells and degrees of freedom for each refinement are stated in table \ref{tab:refinements}.
+Verification was made for two Reynolds numbers (100 and 7500) and for three degrees of basis functions ($Q_2/Q_1, Q_3/Q_2$ and $Q_4/Q_3$).
+BOOKMARK
 
 \begin{table}[htbp]
   \centering
   \caption{Verification matrix and data availability.}
-  \label{tab:verification-matrix}
-  \begin{tabular}{ccccc}
+  \label{tab:refinements}
+  \begin{tabular}{ccc}
     \toprule
-    $Re$ & degree & flow norms & temperature $L^2$ & status \\
+    cycle & \# cells & \# dofs\\ 
     \midrule
-    100  & 1 & [yes] & [yes] & [analysed] \\
-    100  & 2 & [yes] & [yes] & [floor assessment needed] \\
-    100  & 3 & [yes] & [yes] & [floor assessment needed] \\
-    7500 & 1 & [yes] & [not available] & [flow only] \\
-    7500 & 2 & [yes] & [not available] & [flow only] \\
-    7500 & 3 & [yes] & [not available] & [flow only] \\
+    0 & 289 & 12226 \\
+    1 & 1156 & 48147 \\
+    2 & 4624 & 191083 \\
+    3 & 18496 & 761331 \\
+    4 & 73984 & 3039331 \\
     \bottomrule
   \end{tabular}
 \end{table}
+
 
 \section{Flow verification results}
 % Target: 3--4 pages. This is the principal completed result.
@@ -221,9 +275,18 @@ The advection-diffusion temperature equation \ref{cht-heat} concerns heat transp
 % temperature, and the next experiment needed to close the verification matrix.
 
 \appendix
-\section{Generated MMS forcing terms and boundary values}
+\section{Generated MMS forcing terms and boundary values}\label{appendix:generated_sources}
 % Paste or \input the generated mms_report.tex material here after checking
 % it matches the code version used to produce the reported results.
+\begin{subequations}
+  \begin{align}
+    f_x(x,y) &= \pi \left(2 \pi \nu \cos{\left(\pi y \right)} - \sin{\left(\pi y \right)} + \cos{\left(\pi x \right)}\right) \sin{\left(\pi x \right)} \\
+    f_y(x,y) &= \frac{\pi}{2} \left(2 \pi \nu \sin{\left(\pi \left(x - y\right) \right)} - 2 \pi \nu \sin{\left(\pi \left(x + y\right) \right)} \right. \\ \notag
+    & \left. + \sin{\left(2 \pi y \right)} + \cos{\left(\pi \left(x - y\right) \right)} + \cos{\left(\pi \left(x + y\right) \right)}\right) \\
+    s(x,y) &= \frac{\pi}{2} \left(- 20 \pi \kappa \sin^{2}{\left(\pi x \right)} + 10 \pi \kappa - 3 \cos{\left(\pi x \right)} \cos{\left(\pi y \right)} \right. \\ \notag
+    &+ \left. \cos{\left(3 \pi x \right)} \cos{\left(\pi y \right)}\right) \sin{\left(\pi y \right)}
+  \end{align}
+\end{subequations}
 
 \section{Complete convergence tables}
 % Include the generated convergence_rates.tex tables for every reported set.
